@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -16,4 +17,9 @@ class Wallet(SQLModel, table=True):
     name: str = Field(max_length=100)
     currency: str = Field(max_length=10)
     is_default: bool = Field(default=False)
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )

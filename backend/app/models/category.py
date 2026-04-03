@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -18,4 +19,9 @@ class Category(SQLModel, table=True):
     color: str | None = Field(default=None, max_length=20)
     type: str = Field(default="expense", max_length=10)
     is_system: bool = Field(default=False)
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )

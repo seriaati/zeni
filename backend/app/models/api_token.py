@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -15,6 +16,15 @@ class APIToken(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     name: str = Field(max_length=100)
     token_hash: str = Field(unique=True, index=True)
-    last_used: datetime | None = Field(default=None)
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
-    expires_at: datetime | None = Field(default=None)
+    last_used: datetime | None = Field(
+        default=None, sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True)
+    )
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
+    expires_at: datetime | None = Field(
+        default=None, sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True)
+    )

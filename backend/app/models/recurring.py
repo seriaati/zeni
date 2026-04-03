@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -17,6 +18,11 @@ class RecurringExpense(SQLModel, table=True):
     amount: float
     description: str | None = Field(default=None, max_length=500)
     frequency: str = Field(max_length=20)
-    next_due: datetime
+    next_due: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )

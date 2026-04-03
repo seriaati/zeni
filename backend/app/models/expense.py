@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -16,10 +17,25 @@ class Expense(SQLModel, table=True):
     category_id: uuid.UUID = Field(foreign_key="categories.id")
     amount: float
     description: str | None = Field(default=None, max_length=500)
-    date: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    date: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
     ai_context: str | None = Field(default=None)
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
-    updated_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
+    updated_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
 
 
 class ExpenseTag(SQLModel, table=True):

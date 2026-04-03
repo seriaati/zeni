@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
@@ -17,5 +18,15 @@ class Budget(SQLModel, table=True):
     category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
     amount: float
     period: str = Field(max_length=20)
-    start_date: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
-    created_at: datetime = Field(default=None, sa_column_kwargs={"server_default": text("NOW()")})
+    start_date: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
