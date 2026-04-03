@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import anthropic as anthropic_sdk
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
-from app.schemas.ai_provider import AIProviderResponse, AIProviderUpsert
+from app.schemas.ai_provider import AIProviderModelsResponse, AIProviderResponse, AIProviderUpsert
 from app.services.ai_expense import (
     _decrypt_key,
     _mask_key,
@@ -63,3 +64,22 @@ async def delete_ai_provider(current_user: CurrentUser, session: DbDep) -> None:
         )
     await session.delete(record)
     await session.commit()
+
+
+@router.post("/models", status_code=status.HTTP_200_OK)
+async def list_provider_models(
+    _current_user: CurrentUser, api_key: Annotated[str, Body(embed=True)]
+) -> AIProviderModelsResponse:
+    client = anthropic_sdk.AsyncAnthropic(api_key=api_key)
+    try:
+        page = await client.models.list(limit=100)
+        model_ids = [m.id for m in page.data]
+    except anthropic_sdk.AuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid API key."
+        ) from exc
+    except anthropic_sdk.APIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Failed to fetch models: {exc}"
+        ) from exc
+    return AIProviderModelsResponse(models=model_ids)
