@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -11,9 +13,13 @@
   --sand: oklch(82% 0.028 75);
   --sand-dark: oklch(72% 0.032 72);
 
-  --forest: oklch(32% 0.08 155);
-  --forest-mid: oklch(42% 0.1 155);
-  --forest-light: oklch(52% 0.1 155);
+  --forest: oklch(18% 0.01 80);
+  --forest-mid: oklch(28% 0.01 80);
+  --forest-light: oklch(45% 0.01 80);
+  --forest-focus: oklch(28% 0.01 80 / 0.12);
+  --forest-kbd: oklch(28% 0.01 80 / 0.3);
+  --forest-tint: oklch(90% 0.005 80);
+
 
   --ink: oklch(18% 0.02 80);
   --ink-mid: oklch(35% 0.02 80);
@@ -77,12 +83,19 @@ button {
   background: none;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
   font-size: inherit;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 500;
   line-height: 1.2;
 }
@@ -92,13 +105,16 @@ h1, h2, h3, h4, h5, h6 {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--sand);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--sand-dark);
 }
@@ -112,27 +128,55 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes shimmer {
-  from { background-position: -200% 0; }
-  to { background-position: 200% 0; }
+  from {
+    background-position: -200% 0;
+  }
+
+  to {
+    background-position: 200% 0;
+  }
 }
 
 .animate-fade-in {
@@ -145,12 +189,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Skeleton loading */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--cream-dark) 25%,
-    var(--cream-darker) 50%,
-    var(--cream-dark) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--cream-dark) 25%,
+      var(--cream-darker) 50%,
+      var(--cream-dark) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);

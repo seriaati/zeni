@@ -160,7 +160,7 @@
 .kbd-hint {
   margin-left: auto;
   font-size: 11px;
-  background: oklch(42% 0.1 155 / 0.3);
+  background: var(--forest-kbd);
   padding: 1px 5px;
   border-radius: 4px;
   font-family: var(--font-body);
@@ -194,7 +194,7 @@
 }
 
 .nav-item-active {
-  background: oklch(92% 0.06 155);
+  background: var(--forest-tint);
   color: var(--forest);
   font-weight: 500;
 }

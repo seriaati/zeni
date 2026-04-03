@@ -96,7 +96,7 @@
 
 .input:focus {
   border-color: var(--forest-mid);
-  box-shadow: 0 0 0 3px oklch(42% 0.1 155 / 0.12);
+  box-shadow: 0 0 0 3px var(--forest-focus);
 }
 
 .input::placeholder {
@@ -161,7 +161,7 @@ textarea.input {
 }
 
 .badge-green {
-  background: oklch(92% 0.06 155);
+  background: var(--forest-tint);
   color: var(--forest);
 }
 
