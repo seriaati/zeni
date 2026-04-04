@@ -1,15 +1,30 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ExpenseCreate(BaseModel):
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
+    category_name: str | None = None
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
+    tag_names: list[str] = Field(default_factory=list)
+    ai_context: str | None = None
+
+    @model_validator(mode="after")
+    def validate_category(self) -> ExpenseCreate:
+        has_id = self.category_id is not None
+        has_name = self.category_name is not None
+        if has_id and has_name:
+            msg = "Provide either category_id or category_name, not both"
+            raise ValueError(msg)
+        if not has_id and not has_name:
+            msg = "Provide either category_id or category_name"
+            raise ValueError(msg)
+        return self
 
 
 class ExpenseUpdate(BaseModel):

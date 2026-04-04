@@ -4,7 +4,8 @@ import { Download, Filter, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, WalletSummary } from '../lib/types';
-import { fmt, fmtRelative, isEmoji } from '../lib/utils';
+import { fmt, fmtRelative } from '../lib/utils';
+import { CategoryIcon } from '../lib/categoryIcons';
 
 export function WalletViewPage() {
   const { walletId } = useParams<{ walletId: string }>();
@@ -275,27 +276,14 @@ function ExpenseRow({
       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--cream)')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          background: expense.category.color ?? 'var(--cream-darker)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          fontSize: 16,
-        }}
-      >
-        {expense.category.icon && isEmoji(expense.category.icon) ? (
-          <span>{expense.category.icon}</span>
-        ) : (
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
-            {expense.category.name[0]}
-          </span>
-        )}
-      </div>
+      <CategoryIcon
+        iconName={expense.category.icon}
+        color={expense.category.color}
+        size={17}
+        containerSize={38}
+        borderRadius={10}
+        fallbackLetter={expense.category.name[0]}
+      />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

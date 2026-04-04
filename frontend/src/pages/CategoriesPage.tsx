@@ -4,14 +4,12 @@ import { categories as categoriesApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import type { CategoryResponse } from '../lib/types';
-import { isEmoji } from '../lib/utils';
+import { CATEGORY_ICONS, CategoryIcon, iconColorForBg } from '../lib/categoryIcons';
 
 const PRESET_COLORS = [
-  '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
+  null, '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
   '#00BCD4', '#FF5722', '#607D8B', '#795548', '#FFC107',
 ];
-
-const PRESET_ICONS = ['🍔', '🚗', '🏠', '🎬', '💊', '✈️', '📚', '💪', '🛍️', '💡', '🎮', '☕', '🍕', '🎵', '💼'];
 
 export function CategoriesPage() {
   const toast = useToast();
@@ -22,11 +20,16 @@ export function CategoriesPage() {
   const [deleteCat, setDeleteCat] = useState<CategoryResponse | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    icon: string;
+    color: string | null;
+    type: 'expense' | 'income';
+  }>({
     name: '',
     icon: '',
-    color: PRESET_COLORS[0],
-    type: 'expense' as 'expense' | 'income',
+    color: null,
+    type: 'expense',
   });
 
   const load = async () => {
@@ -43,12 +46,12 @@ export function CategoriesPage() {
   useEffect(() => { load(); }, []);
 
   const openCreate = () => {
-    setForm({ name: '', icon: '', color: PRESET_COLORS[0], type: 'expense' });
+    setForm({ name: '', icon: '', color: null, type: 'expense' });
     setShowCreate(true);
   };
 
   const openEdit = (c: CategoryResponse) => {
-    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? PRESET_COLORS[0], type: c.type });
+    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null, type: c.type });
     setEditCat(c);
   };
 
@@ -56,7 +59,7 @@ export function CategoriesPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const data = { name: form.name, icon: form.icon || undefined, color: form.color, type: form.type };
+      const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined, type: form.type };
       if (editCat) {
         await categoriesApi.update(editCat.id, data);
         toast('Category updated', 'success');
@@ -109,54 +112,83 @@ export function CategoriesPage() {
         </div>
       </div>
       <div className="input-group">
-        <label className="input-label">Icon (emoji)</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {PRESET_ICONS.map((icon) => (
-            <button
-              key={icon}
-              onClick={() => setForm({ ...form, icon })}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                border: `2px solid ${form.icon === icon ? 'var(--forest)' : 'var(--cream-darker)'}`,
-                background: form.icon === icon ? 'oklch(92% 0.06 155)' : 'white',
-                cursor: 'pointer',
-                fontSize: 18,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {icon}
-            </button>
-          ))}
+        <label className="input-label">Icon</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button
+            title="No icon"
+            onClick={() => setForm({ ...form, icon: '' })}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              border: `2px solid ${form.icon === '' ? 'var(--forest)' : 'var(--cream-darker)'}`,
+              background: form.icon === '' ? 'oklch(92% 0.06 155)' : 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 15,
+              color: form.icon === '' ? 'var(--forest)' : 'var(--ink-faint)',
+              fontWeight: 700,
+              transition: 'border-color 0.12s, background 0.12s',
+            }}
+          >
+            ∅
+          </button>
+          {CATEGORY_ICONS.map(({ name, icon: Icon, label }) => {
+            const selected = form.icon === name;
+            const iconColor = selected ? iconColorForBg(form.color) : 'var(--ink-mid)';
+            return (
+              <button
+                key={name}
+                title={label}
+                onClick={() => setForm({ ...form, icon: name })}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  border: `2px solid ${selected ? 'var(--forest)' : 'var(--cream-darker)'}`,
+                  background: selected ? (form.color ?? 'var(--forest)') : 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'border-color 0.12s, background 0.12s',
+                }}
+              >
+                <Icon size={16} color={iconColor} strokeWidth={1.75} />
+              </button>
+            );
+          })}
         </div>
-        <input
-          className="input"
-          placeholder="Or type any emoji"
-          value={form.icon}
-          onChange={(e) => setForm({ ...form, icon: e.target.value })}
-        />
       </div>
       <div className="input-group">
         <label className="input-label">Color</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {PRESET_COLORS.map((color) => (
+          {PRESET_COLORS.map((color, i) => (
             <button
-              key={color}
+              key={i}
               onClick={() => setForm({ ...form, color })}
               style={{
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                background: color,
-                border: `3px solid ${form.color === color ? 'var(--ink)' : 'transparent'}`,
+                background: color ?? 'white',
+                border: `3px solid ${form.color === color ? 'var(--ink)' : color === null ? 'var(--cream-darker)' : 'transparent'}`,
                 cursor: 'pointer',
                 outline: form.color === color ? '2px solid white' : 'none',
                 outlineOffset: '-4px',
+                position: 'relative',
+                overflow: 'hidden',
               }}
-            />
+            >
+              {color === null && (
+                <span style={{
+                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, color: 'var(--ink-faint)', fontWeight: 700, lineHeight: 1,
+                }}>∅</span>
+              )}
+            </button>
           ))}
         </div>
       </div>
@@ -282,21 +314,14 @@ function CategoryCard({
       onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
       onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
     >
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: cat.color ?? 'var(--cream-darker)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 16,
-        flexShrink: 0,
-      }}>
-        {cat.icon && isEmoji(cat.icon)
-          ? cat.icon
-          : <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{cat.name[0]}</span>}
-      </div>
+      <CategoryIcon
+        iconName={cat.icon}
+        color={cat.color}
+        size={15}
+        containerSize={32}
+        borderRadius={8}
+        fallbackLetter={cat.name[0]}
+      />
       <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {cat.name}
       </span>

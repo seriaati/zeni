@@ -13,7 +13,7 @@ class Expense(SQLModel, table=True):
         primary_key=True,
         sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
-    wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True)
+    wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True, ondelete="CASCADE")
     category_id: uuid.UUID = Field(foreign_key="categories.id")
     amount: float
     description: str | None = Field(default=None, max_length=500)
@@ -41,5 +41,5 @@ class Expense(SQLModel, table=True):
 class ExpenseTag(SQLModel, table=True):
     __tablename__: str = "expense_tags"
 
-    expense_id: uuid.UUID = Field(foreign_key="expenses.id", primary_key=True)
+    expense_id: uuid.UUID = Field(foreign_key="expenses.id", primary_key=True, ondelete="CASCADE")
     tag_id: uuid.UUID = Field(foreign_key="tags.id", primary_key=True)

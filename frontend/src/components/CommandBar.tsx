@@ -3,18 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Bot,
+  Check,
   Image,
   LayoutDashboard,
   Mic,
   MicOff,
+  Pencil,
   RefreshCw,
   Settings,
+  WandSparkles,
   Tag,
   Wallet,
   X,
   Zap,
 } from 'lucide-react';
-import { expenses as expensesApi, categories } from '../lib/api';
+import { expenses as expensesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
 import type { AIExpenseResponse } from '../lib/types';
@@ -56,10 +59,17 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [editing, setEditing] = useState(false);
+  const [editAmount, setEditAmount] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState('');
+
   const inputRef = useRef<HTMLInputElement>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const amountEditRef = useRef<HTMLInputElement>(null);
 
   const { activeWallet, wallets, setActiveWallet } = useWallet();
   const navigate = useNavigate();
@@ -73,6 +83,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     setImageFile(null);
     setImagePreview(null);
     setSaving(false);
+    setEditing(false);
   }, []);
 
   useEffect(() => {
@@ -86,20 +97,21 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (editing) { setEditing(false); return; }
         if (mode === 'review') { setMode('input'); return; }
         onClose();
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose, mode]);
+  }, [open, onClose, mode, editing]);
 
   const navSuggestions = text.trim()
     ? NAV_ITEMS.filter(
-        (item) =>
-          item.label.toLowerCase().includes(text.toLowerCase()) ||
-          item.keywords.some((k) => k.includes(text.toLowerCase())),
-      )
+      (item) =>
+        item.label.toLowerCase().includes(text.toLowerCase()) ||
+        item.keywords.some((k) => k.includes(text.toLowerCase())),
+    )
     : NAV_ITEMS.slice(0, 4);
 
   const handleSubmit = async () => {
@@ -112,6 +124,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     }
 
     setMode('processing');
+    setEditing(false);
     setError('');
     try {
       const result = await expensesApi.aiParse(activeWallet.id, text || undefined, imageFile || undefined);
@@ -127,20 +140,15 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     if (!parsed || !activeWallet) return;
     setSaving(true);
     try {
-      const cats = await categories.list();
-      const matchedCat = cats.find(
-        (c) => c.name.toLowerCase() === (parsed.category_name ?? '').toLowerCase(),
-      );
-      const othersCat = cats.find((c) => c.is_system);
-      const categoryId = matchedCat?.id ?? othersCat?.id;
-      if (!categoryId) throw new Error('No category found');
+      const tagNames = parsed.suggested_tags.map((t) => t.name);
 
       await expensesApi.create(activeWallet.id, {
-        category_id: categoryId,
+        category_name: parsed.category_name ?? 'Others',
         amount: parsed.amount ?? 0,
         description: parsed.description ?? undefined,
         date: parsed.date ?? undefined,
-        tag_ids: [],
+        tag_names: tagNames,
+        ai_context: parsed.ai_context ?? undefined,
       });
       toast('Expense saved!', 'success');
       onExpenseAdded?.();
@@ -150,6 +158,35 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEditing = () => {
+    if (!parsed) return;
+    setEditAmount(parsed.amount != null ? String(parsed.amount) : '');
+    setEditCategory(parsed.category_name ?? '');
+    setEditDescription(parsed.description ?? '');
+    setEditTags(parsed.suggested_tags.map((t) => t.name).join(', '));
+    setEditing(true);
+    setTimeout(() => amountEditRef.current?.focus(), 50);
+  };
+
+  const commitEdit = () => {
+    if (!parsed) return;
+    const newAmount = parseFloat(editAmount);
+    const newTags = editTags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, is_new: !parsed.suggested_tags.find((t) => t.name === name) }));
+
+    setParsed({
+      ...parsed,
+      amount: isNaN(newAmount) ? parsed.amount : newAmount,
+      category_name: editCategory.trim() || parsed.category_name,
+      description: editDescription.trim() || null,
+      suggested_tags: newTags,
+    });
+    setEditing(false);
   };
 
   const handleImagePaste = useCallback((e: ClipboardEvent) => {
@@ -250,20 +287,25 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && mode === 'input') handleSubmit(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (mode === 'input') handleSubmit();
+                else if (mode === 'review') handleSubmit();
+              }
+            }}
             placeholder={
               mode === 'processing' ? 'Processing…' :
-              mode === 'review' ? 'Expense parsed — review below' :
-              'Type an expense or navigate… (e.g. "coffee 4.50")'
+                mode === 'review' ? 'Edit text and press Enter to re-parse…' :
+                  'Type an expense or navigate… (e.g. "coffee 4.50")'
             }
-            disabled={mode === 'processing' || mode === 'review'}
+            disabled={mode === 'processing'}
             style={{
               flex: 1,
               border: 'none',
               outline: 'none',
               fontSize: 15,
               fontFamily: 'var(--font-body)',
-              color: 'var(--ink)',
+              color: mode === 'review' ? 'var(--ink-mid)' : 'var(--ink)',
               background: 'transparent',
             }}
           />
@@ -340,35 +382,185 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         {mode === 'review' && parsed && (
           <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {/* Amount */}
               <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</div>
-                <div style={{ fontSize: 20, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-                  {parsed.amount != null ? fmt(parsed.amount, parsed.currency ?? activeWallet?.currency) : '—'}
-                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</div>
+                {editing ? (
+                  <input
+                    ref={amountEditRef}
+                    type="number"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+                    style={{
+                      width: '100%',
+                      fontSize: 20,
+                      fontFamily: 'var(--font-display)',
+                      color: 'var(--ink)',
+                      background: 'white',
+                      border: '1.5px solid var(--forest)',
+                      borderRadius: 6,
+                      padding: '2px 6px',
+                      outline: 'none',
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: 20, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+                    {parsed.amount != null ? fmt(parsed.amount, parsed.currency ?? activeWallet?.currency) : '—'}
+                  </div>
+                )}
               </div>
-              <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</div>
-                <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{parsed.category_name ?? 'Others'}</div>
+
+              {/* Category */}
+              <div style={{
+                background: parsed.is_new_category ? 'oklch(97% 0.02 145)' : 'var(--cream)',
+                borderRadius: 10,
+                padding: '10px 14px',
+                border: parsed.is_new_category ? '1.5px solid oklch(82% 0.08 145)' : '1.5px solid transparent',
+              }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Category
+                  {parsed.is_new_category && !editing && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', borderRadius: 4, padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <WandSparkles size={9} /> Will be created
+                    </span>
+                  )}
+                </div>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+                    style={{
+                      width: '100%',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      background: 'white',
+                      border: '1.5px solid var(--forest)',
+                      borderRadius: 6,
+                      padding: '2px 6px',
+                      outline: 'none',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{parsed.category_name ?? 'Others'}</div>
+                )}
               </div>
             </div>
-            {parsed.description && (
+
+            {/* Description */}
+            {(parsed.description || editing) && (
               <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</div>
-                <div style={{ fontSize: 14, color: 'var(--ink)' }}>{parsed.description}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</div>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+                    placeholder="Optional description"
+                    style={{
+                      width: '100%',
+                      fontSize: 14,
+                      color: 'var(--ink)',
+                      background: 'white',
+                      border: '1.5px solid var(--forest)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      outline: 'none',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: 14, color: 'var(--ink)' }}>{parsed.description}</div>
+                )}
               </div>
             )}
-            {parsed.ai_context && (
+
+            {/* Tags */}
+            {(parsed.suggested_tags.length > 0 || editing) && (
+              <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tags</div>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+                    placeholder="tag1, tag2, tag3"
+                    style={{
+                      width: '100%',
+                      fontSize: 13,
+                      color: 'var(--ink)',
+                      background: 'white',
+                      border: '1.5px solid var(--forest)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      outline: 'none',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {parsed.suggested_tags.map((t) => (
+                      t.is_new ? (
+                        <span key={t.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', border: '1.5px solid oklch(82% 0.08 145)', borderRadius: 6, padding: '3px 8px' }}>
+                          <WandSparkles size={10} /> {t.name}
+                        </span>
+                      ) : (
+                        <span key={t.name} className="chip" style={{ fontSize: 12, padding: '3px 8px' }}>
+                          {t.name}
+                        </span>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* AI context */}
+            {parsed.ai_context && !editing && (
               <div style={{ fontSize: 12, color: 'var(--ink-light)', fontStyle: 'italic', padding: '0 2px' }}>
                 AI understood: {parsed.ai_context}
               </div>
             )}
+
+            {/* Actions */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setMode('input')}>Edit</button>
-              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
-                {saving && <span className="btn-spinner" />}
-                Save expense
-              </button>
+              {editing ? (
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+                  <button className="btn btn-primary btn-sm" onClick={commitEdit} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Check size={13} /> Apply
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={startEditing}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Pencil size={13} /> Edit
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+                    {saving && <span className="btn-spinner" />}
+                    Save expense
+                  </button>
+                </>
+              )}
             </div>
+
+            {/* Re-parse hint */}
+            {!editing && (
+              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)', paddingTop: 2 }}>
+                <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
+                <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
+              </div>
+            )}
           </div>
         )}
 

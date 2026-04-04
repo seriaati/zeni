@@ -92,13 +92,13 @@ async def update_category(
             detail="Cannot modify the system 'Others' category",
         )
 
-    if body.name is not None:
+    if "name" in body.model_fields_set and body.name is not None:
         cat.name = body.name
-    if body.icon is not None:
+    if "icon" in body.model_fields_set:
         cat.icon = body.icon
-    if body.color is not None:
+    if "color" in body.model_fields_set:
         cat.color = body.color
-    if body.type is not None:
+    if "type" in body.model_fields_set and body.type is not None:
         cat.type = body.type
 
     session.add(cat)

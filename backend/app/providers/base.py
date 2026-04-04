@@ -3,15 +3,17 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from pydantic import BaseModel, Field
 
-@dataclass
-class ParsedExpense:
+
+class ParsedExpense(BaseModel):
     amount: float
     currency: str
     category_name: str
     description: str
     date: str
     ai_context: str
+    suggested_tags: list[str] = Field(default_factory=list)
 
 
 @dataclass
@@ -41,6 +43,7 @@ class LLMProvider(ABC):
         image_base64: str | None,
         image_media_type: str | None,
         categories: list[str],
+        tags: list[str],
     ) -> ParsedExpense: ...
 
     @abstractmethod

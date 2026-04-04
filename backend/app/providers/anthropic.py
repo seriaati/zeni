@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal, cast, get_args
 
@@ -14,23 +13,23 @@ if TYPE_CHECKING:
 
 SYSTEM_PROMPT = """\
 You are an expense parsing assistant. Extract expense information from the user's input \
-(text, image, or both) and return a JSON object with exactly these fields:
-
-{
-  "amount": <number, required>,
-  "currency": <3-letter ISO currency code, e.g. "USD", required>,
-  "category_name": <string matching one of the provided categories, required>,
-  "description": <short description of the expense, required>,
-  "date": <ISO 8601 date string YYYY-MM-DD, use today if not specified, required>,
-  "ai_context": <brief summary of what you extracted and why you chose the category, required>
-}
+(text, image, or both) and call the extract_expense tool with the parsed data.
 
 Rules:
 - amount must be a positive number
-- category_name must exactly match one of the categories provided by the user; \
-if nothing fits, use "Others"
+- currency must be a 3-letter ISO currency code (e.g. "USD")
+- category_name: FIRST check the provided categories list for a good match. If a match exists, \
+use it exactly. If NO good match exists, you MUST invent a specific, descriptive new category \
+name (e.g. "Electronics", "Gaming", "Healthcare", "Transport") — NEVER use "Others" unless the \
+expense is completely ambiguous and cannot be described more specifically.
 - description should be concise (max 100 chars)
-- Return ONLY the JSON object, no markdown, no explanation outside the JSON
+- date: use ISO 8601 format YYYY-MM-DD; use today's date if not specified
+- ai_context: brief summary of what you extracted and why you chose the category
+- suggested_tags: FIRST check the provided tags list for relevant matches. Then, for any \
+concrete purchase (a product, service, or activity), you may also suggest new descriptive \
+short tags that are NOT in the provided list (e.g. for a gaming mouse: "gaming", "hardware" \
+). One expense can only have 3 tags in maximum, so if existing tags already match and the \
+maximum will be exceeded, don't suggest. Return an empty array if no tags are suggested.
 """
 
 CHAT_SYSTEM_PROMPT = """\
@@ -62,6 +61,7 @@ class AnthropicProvider(LLMProvider):
         image_base64: str | None,
         image_media_type: str | None,
         categories: list[str],
+        tags: list[str],
     ) -> ParsedExpense:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
@@ -69,6 +69,7 @@ class AnthropicProvider(LLMProvider):
 
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         category_list = ", ".join(categories) if categories else "Others"
+        tag_list = ", ".join(tags) if tags else ""
 
         parts: list[TextBlockParam | ImageBlockParam] = []
 
@@ -86,7 +87,11 @@ class AnthropicProvider(LLMProvider):
                 )
             )
 
-        prompt_text = f"Today's date: {today}\nAvailable categories: {category_list}\n\n"
+        prompt_text = f"Today's date: {today}\nAvailable categories: {category_list}\n"
+        if tag_list:
+            prompt_text += f"Available tags: {tag_list}\n"
+        prompt_text += "\n"
+
         if text:
             prompt_text += f"User input: {text}"
         else:
@@ -94,28 +99,19 @@ class AnthropicProvider(LLMProvider):
 
         parts.append(TextBlockParam(type="text", text=prompt_text))
 
-        response = await self._client.messages.create(
+        response = await self._client.messages.parse(
             model=self._model,
-            max_tokens=512,
+            max_tokens=1024,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": parts}],
+            output_format=ParsedExpense,
         )
 
-        raw = response.content[0]
-        if raw.type != "text":
-            msg = "Unexpected response type from Anthropic"
+        parsed = response.parsed_output
+        if parsed is None:
+            msg = "Failed to parse expense from input"
             raise ValueError(msg)
-
-        data = json.loads(raw.text)
-
-        return ParsedExpense(
-            amount=float(data["amount"]),
-            currency=str(data["currency"]).upper(),
-            category_name=str(data["category_name"]),
-            description=str(data["description"]),
-            date=str(data["date"]),
-            ai_context=str(data["ai_context"]),
-        )
+        return parsed
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
         by_category_lines = "\n".join(

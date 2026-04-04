@@ -14,7 +14,7 @@ class Budget(SQLModel, table=True):
         sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
-    wallet_id: uuid.UUID | None = Field(default=None, foreign_key="wallets.id")
+    wallet_id: uuid.UUID | None = Field(default=None, foreign_key="wallets.id", ondelete="SET NULL")
     category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
     amount: float
     period: str = Field(max_length=20)

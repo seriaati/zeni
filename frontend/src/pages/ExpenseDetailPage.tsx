@@ -1,10 +1,320 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bot, Pencil, Trash2, Check, X } from 'lucide-react';
+import { ArrowLeft, Bot, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { Select } from '../components/ui/Select';
+import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, ExpenseResponse, TagResponse } from '../lib/types';
-import { fmt, fmtDate, isEmoji } from '../lib/utils';
+import { fmt, fmtDate } from '../lib/utils';
+import { CategoryIcon } from '../lib/categoryIcons';
+
+interface TagDropdownPos {
+  top: number;
+  left: number;
+  width: number;
+  openUp: boolean;
+}
+
+const DROPDOWN_MAX_H = 260;
+const DROPDOWN_MARGIN = 4;
+
+interface TagPickerProps {
+  selectedIds: string[];
+  allTags: TagResponse[];
+  onAdd: (id: string) => void;
+  onRemove: (id: string) => void;
+  onCreateAndAdd: (name: string) => Promise<void>;
+}
+
+function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: TagPickerProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [pos, setPos] = useState<TagDropdownPos | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const unselected = allTags.filter((t) => !selectedIds.includes(t.id));
+  const filtered = query.trim()
+    ? unselected.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
+    : unselected;
+
+  const trimmed = query.trim();
+  const exactMatch = allTags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase());
+  const showCreate = trimmed.length > 0 && !exactMatch;
+
+  const totalItems = filtered.length + (showCreate ? 1 : 0);
+
+  const measure = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const spaceAbove = r.top;
+    const openUp = spaceBelow < DROPDOWN_MAX_H + DROPDOWN_MARGIN && spaceAbove > spaceBelow;
+    setPos({
+      top: openUp ? r.top + window.scrollY - DROPDOWN_MARGIN : r.bottom + window.scrollY + DROPDOWN_MARGIN,
+      left: r.left + window.scrollX,
+      width: r.width,
+      openUp,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (open) measure();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) { setQuery(''); setFocusedIndex(0); return; }
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }, [open]);
+
+  useEffect(() => { setFocusedIndex(0); }, [query]);
+
+  useEffect(() => {
+    if (!open || focusedIndex < 0) return;
+    const el = listRef.current?.children[focusedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [focusedIndex, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (
+        !triggerRef.current?.contains(e.target as Node) &&
+        !dropdownRef.current?.contains(e.target as Node)
+      ) setOpen(false);
+    };
+    const reposition = () => measure();
+    document.addEventListener('mousedown', close);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex((i) => Math.min(i + 1, totalItems - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex((i) => Math.max(i - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusedIndex < filtered.length) {
+          const tag = filtered[focusedIndex];
+          if (tag) { onAdd(tag.id); setQuery(''); setFocusedIndex(0); }
+        } else if (showCreate) {
+          handleCreate();
+        }
+        break;
+      case 'Escape':
+        setOpen(false);
+        break;
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!trimmed || creating) return;
+    setCreating(true);
+    try {
+      await onCreateAndAdd(trimmed);
+      setQuery('');
+      setFocusedIndex(0);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const selectedTags = allTags.filter((t) => selectedIds.includes(t.id));
+
+  const dropdown = open && pos ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'absolute',
+        top: pos.openUp ? undefined : pos.top,
+        bottom: pos.openUp ? window.innerHeight + window.scrollY - pos.top : undefined,
+        left: pos.left,
+        width: Math.max(pos.width, 220),
+        zIndex: 9999,
+        background: 'white',
+        border: '1.5px solid var(--sand)',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow-lg)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'ssDropIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) both',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--cream-dark)' }}>
+        <Search size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+        <input
+          ref={searchRef}
+          style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--ink)', background: 'transparent' }}
+          placeholder="Search or create tag…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
+      <ul ref={listRef} style={{ listStyle: 'none', padding: 4, maxHeight: 200, overflowY: 'auto', margin: 0 }}>
+        {filtered.length === 0 && !showCreate && (
+          <li style={{ padding: '10px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>
+            {unselected.length === 0 ? 'All tags added' : 'No results'}
+          </li>
+        )}
+        {filtered.map((tag, i) => (
+          <li
+            key={tag.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px',
+              borderRadius: 'calc(var(--radius) - 4px)',
+              fontSize: 13,
+              cursor: 'pointer',
+              background: i === focusedIndex ? 'var(--cream-dark)' : 'transparent',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={() => setFocusedIndex(i)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onAdd(tag.id);
+              setQuery('');
+              setFocusedIndex(0);
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: tag.color ?? 'var(--ink-faint)',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ flex: 1, color: 'var(--ink)' }}>{tag.name}</span>
+          </li>
+        ))}
+        {showCreate && (
+          <li
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px',
+              borderRadius: 'calc(var(--radius) - 4px)',
+              fontSize: 13,
+              cursor: creating ? 'not-allowed' : 'pointer',
+              background: focusedIndex === filtered.length ? 'var(--cream-dark)' : 'transparent',
+              transition: 'background 0.1s',
+              color: 'var(--forest)',
+              fontWeight: 500,
+              opacity: creating ? 0.6 : 1,
+            }}
+            onMouseEnter={() => setFocusedIndex(filtered.length)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleCreate();
+            }}
+          >
+            <Plus size={13} style={{ flexShrink: 0 }} />
+            <span>Create &ldquo;{trimmed}&rdquo;</span>
+          </li>
+        )}
+      </ul>
+    </div>,
+    document.body,
+  ) : null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {selectedTags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {selectedTags.map((tag) => (
+            <span
+              key={tag.id}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '3px 8px 3px 10px',
+                borderRadius: 100,
+                fontSize: 12,
+                fontFamily: 'var(--font-body)',
+                background: tag.color ? `${tag.color}22` : 'var(--cream-dark)',
+                border: `1.5px solid ${tag.color ?? 'var(--sand)'}`,
+                color: tag.color ?? 'var(--ink-mid)',
+              }}
+            >
+              {tag.name}
+              <button
+                type="button"
+                onClick={() => onRemove(tag.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  color: 'inherit',
+                  opacity: 0.6,
+                  lineHeight: 1,
+                }}
+                aria-label={`Remove ${tag.name}`}
+              >
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ position: 'relative' }}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '5px 10px',
+            borderRadius: 100,
+            fontSize: 12,
+            fontFamily: 'var(--font-body)',
+            background: 'transparent',
+            border: '1.5px dashed var(--sand)',
+            color: 'var(--ink-faint)',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--forest-mid)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--forest)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--sand)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-faint)'; }}
+        >
+          <Plus size={11} />
+          Add tag
+        </button>
+        {dropdown}
+      </div>
+    </div>
+  );
+}
 
 export function ExpenseDetailPage() {
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
@@ -82,11 +392,22 @@ export function ExpenseDetailPage() {
     }
   };
 
-  const toggleTag = (id: string) => {
-    setForm((f) => ({
-      ...f,
-      tag_ids: f.tag_ids.includes(id) ? f.tag_ids.filter((t) => t !== id) : [...f.tag_ids, id],
-    }));
+  const handleAddTag = (id: string) => {
+    setForm((f) => ({ ...f, tag_ids: f.tag_ids.includes(id) ? f.tag_ids : [...f.tag_ids, id] }));
+  };
+
+  const handleRemoveTag = (id: string) => {
+    setForm((f) => ({ ...f, tag_ids: f.tag_ids.filter((t) => t !== id) }));
+  };
+
+  const handleCreateAndAddTag = async (name: string) => {
+    try {
+      const newTag = await tagsApi.create({ name });
+      setAllTags((prev) => [...prev, newTag]);
+      setForm((f) => ({ ...f, tag_ids: [...f.tag_ids, newTag.id] }));
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed to create tag', 'error');
+    }
   };
 
   if (loading) {
@@ -99,9 +420,10 @@ export function ExpenseDetailPage() {
 
   if (!expense) return <p style={{ color: 'var(--ink-light)' }}>Expense not found.</p>;
 
+  const categoryOptions = categories.map((c) => ({ value: c.id, label: c.name }));
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: 560 }}>
-      {/* Back */}
       <button
         className="btn btn-ghost btn-sm"
         onClick={() => navigate(`/wallets/${walletId}`)}
@@ -162,16 +484,21 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Category</div>
             {editing ? (
-              <select className="input" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <Select
+                value={form.category_id}
+                onChange={(v) => setForm({ ...form, category_id: v })}
+                options={categoryOptions}
+              />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 7, background: expense.category.color ?? 'var(--cream-darker)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                  {expense.category.icon && isEmoji(expense.category.icon)
-                    ? expense.category.icon
-                    : <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>{expense.category.name[0]}</span>}
-                </div>
+                <CategoryIcon
+                  iconName={expense.category.icon}
+                  color={expense.category.color}
+                  size={13}
+                  containerSize={28}
+                  borderRadius={7}
+                  fallbackLetter={expense.category.name[0]}
+                />
                 <span style={{ fontSize: 15, fontWeight: 500 }}>{expense.category.name}</span>
               </div>
             )}
@@ -180,7 +507,10 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Date</div>
             {editing ? (
-              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <DatePicker
+                value={form.date}
+                onChange={(v) => setForm({ ...form, date: v })}
+              />
             ) : (
               <div style={{ fontSize: 15, fontWeight: 500 }}>{fmtDate(expense.date)}</div>
             )}
@@ -209,29 +539,13 @@ export function ExpenseDetailPage() {
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Tags</div>
           {editing ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {allTags.map((tag) => (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 100,
-                    fontSize: 12,
-                    fontFamily: 'var(--font-body)',
-                    border: '1.5px solid',
-                    cursor: 'pointer',
-                    background: form.tag_ids.includes(tag.id) ? (tag.color ?? 'var(--forest)') : 'transparent',
-                    borderColor: tag.color ?? 'var(--sand)',
-                    color: form.tag_ids.includes(tag.id) ? 'white' : 'var(--ink-mid)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {tag.name}
-                </button>
-              ))}
-              {allTags.length === 0 && <span style={{ fontSize: 13, color: 'var(--ink-faint)' }}>No tags created yet.</span>}
-            </div>
+            <TagPicker
+              selectedIds={form.tag_ids}
+              allTags={allTags}
+              onAdd={handleAddTag}
+              onRemove={handleRemoveTag}
+              onCreateAndAdd={handleCreateAndAddTag}
+            />
           ) : expense.tags.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {expense.tags.map((tag) => (

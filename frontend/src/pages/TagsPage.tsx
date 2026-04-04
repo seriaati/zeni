@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import type { TagResponse } from '../lib/types';
 
 const PRESET_COLORS = [
-  '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
+  null, '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
   '#00BCD4', '#FF5722', '#607D8B', '#795548', '#FFC107',
 ];
 
@@ -18,7 +18,7 @@ export function TagsPage() {
   const [editTag, setEditTag] = useState<TagResponse | null>(null);
   const [deleteTag, setDeleteTag] = useState<TagResponse | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', color: PRESET_COLORS[0] });
+  const [form, setForm] = useState<{ name: string; color: string | null }>({ name: '', color: null });
 
   const load = async () => {
     setLoading(true);
@@ -34,25 +34,26 @@ export function TagsPage() {
   useEffect(() => { load(); }, []);
 
   const openCreate = () => {
-    setForm({ name: '', color: PRESET_COLORS[0] });
+    setForm({ name: '', color: null });
     setShowCreate(true);
   };
 
   const openEdit = (t: TagResponse) => {
-    setForm({ name: t.name, color: t.color ?? PRESET_COLORS[0] });
+    setForm({ name: t.name, color: t.color ?? null });
     setEditTag(t);
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
+    const payload = { name: form.name, color: form.color ?? undefined };
     try {
       if (editTag) {
-        await tagsApi.update(editTag.id, form);
+        await tagsApi.update(editTag.id, payload);
         toast('Tag updated', 'success');
         setEditTag(null);
       } else {
-        await tagsApi.create(form);
+        await tagsApi.create(payload);
         toast('Tag created', 'success');
         setShowCreate(false);
       }
@@ -94,21 +95,30 @@ export function TagsPage() {
       <div className="input-group">
         <label className="input-label">Color</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {PRESET_COLORS.map((color) => (
+          {PRESET_COLORS.map((color, i) => (
             <button
-              key={color}
+              key={i}
               onClick={() => setForm({ ...form, color })}
               style={{
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                background: color,
-                border: `3px solid ${form.color === color ? 'var(--ink)' : 'transparent'}`,
+                background: color ?? 'white',
+                border: `3px solid ${form.color === color ? 'var(--ink)' : color === null ? 'var(--cream-darker)' : 'transparent'}`,
                 cursor: 'pointer',
                 outline: form.color === color ? '2px solid white' : 'none',
                 outlineOffset: '-4px',
+                position: 'relative',
+                overflow: 'hidden',
               }}
-            />
+            >
+              {color === null && (
+                <span style={{
+                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, color: 'var(--ink-faint)', fontWeight: 700, lineHeight: 1,
+                }}>∅</span>
+              )}
+            </button>
           ))}
         </div>
       </div>

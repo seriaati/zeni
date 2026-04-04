@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { ArrowRight, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { expenses as expensesApi } from '../lib/api';
+import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { ExpenseResponse, ExpenseSummary } from '../lib/types';
-import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, isEmoji } from '../lib/utils';
+import type { BudgetResponse, CategoryResponse, ExpenseResponse, ExpenseSummary } from '../lib/types';
+import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek } from '../lib/utils';
+import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
 
-const CHART_COLORS = [
+const FALLBACK_COLORS = [
   'var(--forest)',
   'var(--amber)',
   'var(--sky)',
@@ -26,24 +27,27 @@ export function DashboardPage() {
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
   const [weekSummary, setWeekSummary] = useState<ExpenseSummary | null>(null);
   const [recent, setRecent] = useState<ExpenseResponse[]>([]);
+  const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!activeWallet) return;
     setLoading(true);
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
 
     Promise.all([
       expensesApi.summary(activeWallet.id, { start_date: startOfMonth(), end_date: endOfMonth() }),
       expensesApi.summary(activeWallet.id, { start_date: startOfWeek() }),
       expensesApi.list(activeWallet.id, { page: 1, page_size: 8, sort_by: 'date', sort_order: 'desc' }),
+      budgetsApi.list(),
+      categoriesApi.list(),
     ])
-      .then(([monthSum, weekSum, recentList]) => {
+      .then(([monthSum, weekSum, recentList, budgetList, categoryList]) => {
         setSummary(monthSum);
         setWeekSummary(weekSum);
         setRecent(recentList.items);
+        setBudgets(budgetList);
+        setCategories(categoryList);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -71,8 +75,70 @@ export function DashboardPage() {
     );
   }
 
+  const getCategoryName = (id: string | null) =>
+    id ? (categories.find((c) => c.id === id)?.name ?? 'Unknown') : null;
+
+  const overBudget = budgets.filter((b) => b.is_over_budget);
+  const nearLimit = budgets.filter((b) => !b.is_over_budget && b.percentage_used >= 80);
+
   return (
     <div className="animate-fade-in">
+      {/* Over-budget warning banner */}
+      {!loading && overBudget.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+          background: 'oklch(97% 0.04 20)',
+          border: '1.5px solid var(--rose-light)',
+          borderLeft: '4px solid var(--rose)',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 24,
+        }}>
+          <AlertTriangle size={18} style={{ color: 'var(--rose)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--rose)', marginBottom: 2 }}>
+              {overBudget.length === 1 ? '1 budget exceeded' : `${overBudget.length} budgets exceeded`}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
+              {overBudget.map((b) => getCategoryName(b.category_id) ?? 'Overall').join(', ')} {overBudget.length === 1 ? 'is' : 'are'} over the spending limit this {overBudget[0].period}.
+            </div>
+          </div>
+          <Link to="/budgets" style={{ fontSize: 13, color: 'var(--rose)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+            Review <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
+
+      {/* Near-limit warning banner */}
+      {!loading && overBudget.length === 0 && nearLimit.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+          background: 'oklch(97% 0.06 70)',
+          border: '1.5px solid var(--amber-light)',
+          borderLeft: '4px solid var(--amber)',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 24,
+        }}>
+          <AlertTriangle size={18} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(52% 0.14 65)', marginBottom: 2 }}>
+              {nearLimit.length === 1 ? '1 budget near limit' : `${nearLimit.length} budgets near limit`}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
+              {nearLimit.map((b) => getCategoryName(b.category_id) ?? 'Overall').join(', ')} {nearLimit.length === 1 ? 'is' : 'are'} above 80% of the spending limit.
+            </div>
+          </div>
+          <Link to="/budgets" style={{ fontSize: 13, color: 'oklch(52% 0.14 65)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+            Review <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 4vw, 36px)', color: 'var(--ink)', fontStyle: 'italic' }}>
@@ -110,6 +176,67 @@ export function DashboardPage() {
           loading={loading}
         />
       </div>
+
+      {/* Budget overview */}
+      {(loading || budgets.length > 0) && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Budgets</h2>
+            <Link to="/budgets" style={{ fontSize: 13, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Manage <ArrowRight size={13} />
+            </Link>
+          </div>
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {budgets.map((b) => {
+                const pct = Math.min(b.percentage_used, 100);
+                const isWarning = b.percentage_used >= 80 && !b.is_over_budget;
+                const barColor = b.is_over_budget ? 'var(--rose)' : isWarning ? 'var(--amber)' : 'var(--forest)';
+                return (
+                  <Link
+                    key={b.id}
+                    to="/budgets"
+                    style={{
+                      display: 'block',
+                      background: 'white',
+                      borderRadius: 12,
+                      border: `1px solid ${b.is_over_budget ? 'var(--rose-light)' : 'var(--cream-darker)'}`,
+                      padding: '14px 16px',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                        {getCategoryName(b.category_id) ?? 'Overall'}
+                      </span>
+                      <span style={{ fontSize: 12, color: barColor, fontWeight: 500 }}>
+                        {b.percentage_used.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div style={{ background: 'var(--cream-dark)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 99, transition: 'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
+                        {fmt(b.spent)} spent
+                      </span>
+                      <span style={{ fontSize: 11, color: b.is_over_budget ? 'var(--rose)' : 'var(--ink-faint)' }}>
+                        {b.is_over_budget ? `${fmt(Math.abs(b.remaining))} over` : `${fmt(b.remaining)} left`}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
         {/* Recent expenses */}
@@ -153,27 +280,14 @@ export function DashboardPage() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'white')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 9,
-                      background: expense.category.color ?? 'var(--cream-darker)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 16,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {expense.category.icon && isEmoji(expense.category.icon) ? (
-                      <span>{expense.category.icon}</span>
-                    ) : (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>
-                        {expense.category.name[0]}
-                      </span>
-                    )}
-                  </div>
+                  <CategoryIcon
+                    iconName={expense.category.icon}
+                    color={expense.category.color}
+                    size={16}
+                    containerSize={36}
+                    borderRadius={9}
+                    fallbackLetter={expense.category.name[0]}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {expense.description ?? expense.category.name}
@@ -210,8 +324,8 @@ export function DashboardPage() {
                     outerRadius={72}
                     paddingAngle={2}
                   >
-                    {summary.by_category.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    {summary.by_category.map((cat, i) => (
+                      <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -223,7 +337,7 @@ export function DashboardPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                 {summary.by_category.slice(0, 5).map((cat, i) => (
                   <div key={cat.category_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
                     <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
                   </div>

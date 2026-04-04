@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import anthropic as anthropic_sdk
@@ -9,6 +10,7 @@ from sqlmodel import select
 
 from app.models.ai_provider import AIProvider
 from app.models.category import Category
+from app.models.tag import Tag
 from app.providers.anthropic import AnthropicProvider
 
 if TYPE_CHECKING:
@@ -16,7 +18,23 @@ if TYPE_CHECKING:
 
     from sqlmodel.ext.asyncio.session import AsyncSession
 
-    from app.providers.base import ParsedExpense
+
+@dataclass
+class SuggestedTagResult:
+    name: str
+    is_new: bool
+
+
+@dataclass
+class ParsedExpenseResult:
+    amount: float
+    currency: str
+    category_name: str
+    is_new_category: bool
+    description: str
+    date: str
+    ai_context: str
+    suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
 
 
 def _mask_key(key: str) -> str:
@@ -63,7 +81,7 @@ async def parse_expense_with_ai(
     image_base64: str | None,
     image_media_type: str | None,
     session: AsyncSession,
-) -> ParsedExpense:
+) -> ParsedExpenseResult:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
         raise HTTPException(
@@ -74,16 +92,22 @@ async def parse_expense_with_ai(
     api_key = _decrypt_key(record.api_key_encrypted)
 
     cat_result = await session.exec(select(Category).where(Category.user_id == user_id))
-    categories = [c.name for c in cat_result.all()]
+    existing_categories = cat_result.all()
+    category_names = [c.name for c in existing_categories]
+
+    tag_result = await session.exec(select(Tag).where(Tag.user_id == user_id))
+    existing_tags = tag_result.all()
+    tag_names = [t.name for t in existing_tags]
 
     provider = AnthropicProvider(api_key=api_key, model=record.model)
 
     try:
-        return await provider.parse_expense(
+        parsed = await provider.parse_expense(
             text=text,
             image_base64=image_base64,
             image_media_type=image_media_type,
-            categories=categories,
+            categories=category_names,
+            tags=tag_names,
         )
     except anthropic_sdk.AuthenticationError as exc:
         raise HTTPException(
@@ -104,3 +128,23 @@ async def parse_expense_with_ai(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Could not parse expense from input: {exc}",
         ) from exc
+
+    existing_category_names_lower = {c.name.lower() for c in existing_categories}
+    is_new_category = parsed.category_name.lower() not in existing_category_names_lower
+
+    existing_tag_names_lower = {t.name.lower() for t in existing_tags}
+    suggested_tags = [
+        SuggestedTagResult(name=name, is_new=name.lower() not in existing_tag_names_lower)
+        for name in parsed.suggested_tags
+    ]
+
+    return ParsedExpenseResult(
+        amount=parsed.amount,
+        currency=parsed.currency,
+        category_name=parsed.category_name,
+        is_new_category=is_new_category,
+        description=parsed.description,
+        date=parsed.date,
+        ai_context=parsed.ai_context,
+        suggested_tags=suggested_tags,
+    )

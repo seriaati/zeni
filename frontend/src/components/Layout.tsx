@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Bot,
@@ -43,6 +43,7 @@ export function Layout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [expenseAddedKey, setExpenseAddedKey] = useState(0);
   const navigate = useNavigate();
+  const walletSelectorRef = useRef<HTMLDivElement>(null);
 
   const handleExpenseAdded = useCallback(() => {
     setExpenseAddedKey((k) => k + 1);
@@ -58,6 +59,17 @@ export function Layout() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!walletMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (walletSelectorRef.current && !walletSelectorRef.current.contains(e.target as Node)) {
+        setWalletMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [walletMenuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -77,7 +89,7 @@ export function Layout() {
 
         {/* Wallet selector */}
         {wallets.length > 0 && (
-          <div className="wallet-selector" onClick={() => setWalletMenuOpen(!walletMenuOpen)}>
+          <div className="wallet-selector" ref={walletSelectorRef} onClick={() => setWalletMenuOpen(!walletMenuOpen)}>
             <div className="wallet-selector-inner">
               <div className="wallet-dot" style={{ background: activeWallet ? 'var(--forest)' : 'var(--sand)' }} />
               <div className="wallet-info">

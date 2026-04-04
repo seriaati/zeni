@@ -23,13 +23,20 @@ class AIExpenseRequest(BaseModel):
     image_media_type: str | None = None
 
 
+class SuggestedTag(BaseModel):
+    name: str
+    is_new: bool
+
+
 class AIExpenseResponse(BaseModel):
     amount: float
     currency: str
     category_name: str
+    is_new_category: bool
     description: str
     date: str
     ai_context: str
+    suggested_tags: list[SuggestedTag]
 
 
 class VoiceExpenseResponse(BaseModel):
@@ -37,6 +44,8 @@ class VoiceExpenseResponse(BaseModel):
     amount: float
     currency: str
     category_name: str
+    is_new_category: bool
     description: str
     date: str
     ai_context: str
+    suggested_tags: list[SuggestedTag]

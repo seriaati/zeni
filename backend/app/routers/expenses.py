@@ -17,7 +17,7 @@ from app.models.expense import Expense, ExpenseTag
 from app.models.tag import Tag
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.schemas.ai_provider import AIExpenseResponse, VoiceExpenseResponse
+from app.schemas.ai_provider import AIExpenseResponse, SuggestedTag, VoiceExpenseResponse
 from app.schemas.expense import (
     CategoryBrief,
     ExpenseCreate,
@@ -28,6 +28,7 @@ from app.schemas.expense import (
     TagBrief,
 )
 from app.services.ai_expense import parse_expense_with_ai
+from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.voice import transcribe_audio
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/expenses", tags=["expenses"])
@@ -146,9 +147,11 @@ async def create_expense_ai(
         amount=parsed.amount,
         currency=parsed.currency,
         category_name=parsed.category_name,
+        is_new_category=parsed.is_new_category,
         description=parsed.description,
         date=parsed.date,
         ai_context=parsed.ai_context,
+        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
     )
 
 
@@ -183,9 +186,11 @@ async def create_expense_voice(
         amount=parsed.amount,
         currency=parsed.currency,
         category_name=parsed.category_name,
+        is_new_category=parsed.is_new_category,
         description=parsed.description,
         date=parsed.date,
         ai_context=parsed.ai_context,
+        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
     )
 
 
@@ -194,20 +199,38 @@ async def create_expense(
     wallet_id: uuid.UUID, body: ExpenseCreate, current_user: CurrentUser, session: DbDep
 ) -> ExpenseResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
-    await _validate_category(body.category_id, current_user.id, session)
+
+    if body.category_id is not None:
+        await _validate_category(body.category_id, current_user.id, session)
+        resolved_category_id = body.category_id
+    else:
+        assert body.category_name is not None
+        category = await find_or_create_category(
+            user_id=current_user.id, name=body.category_name, session=session
+        )
+        resolved_category_id = category.id
+
     await _validate_tag_ids(body.tag_ids, current_user.id, session)
+
+    name_resolved_tag_ids: list[uuid.UUID] = []
+    for name in body.tag_names:
+        tag = await find_or_create_tag(user_id=current_user.id, name=name, session=session)
+        name_resolved_tag_ids.append(tag.id)
+
+    all_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
 
     expense = Expense(
         wallet_id=wallet_id,
-        category_id=body.category_id,
+        category_id=resolved_category_id,
         amount=body.amount,
         description=body.description,
         date=body.date or datetime.now(UTC),
+        ai_context=body.ai_context,
     )
     session.add(expense)
     await session.flush()
 
-    for tag_id in body.tag_ids:
+    for tag_id in all_tag_ids:
         session.add(ExpenseTag(expense_id=expense.id, tag_id=tag_id))
 
     await session.commit()
@@ -244,6 +267,7 @@ async def get_expense_summary(
             by_category[e.category_id] = {
                 "category_id": str(e.category_id),
                 "category_name": cat.name if cat else "Unknown",
+                "category_color": cat.color if cat else None,
                 "total": 0.0,
                 "count": 0,
             }
