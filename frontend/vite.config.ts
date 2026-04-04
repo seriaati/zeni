@@ -12,4 +12,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router-dom)/, priority: 30 },
+            { name: 'vendor-charts', test: /node_modules[\\/]recharts/, priority: 20 },
+            { name: 'vendor-utils', test: /node_modules[\\/](date-fns|lucide-react|clsx)/, priority: 10 },
+          ],
+        },
+      },
+    },
+  },
 })
