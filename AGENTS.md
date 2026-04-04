@@ -28,6 +28,7 @@ uv run python -c "..."
 ## API Layer
 
 All API calls go through [`src/lib/api.ts`](src/lib/api.ts) — a single `request<T>()` function that:
+
 - Auto-attaches `Authorization: Bearer <token>` from `localStorage`
 - On 401, silently attempts token refresh via `/api/auth/refresh`, then retries once
 - On second 401, clears tokens and redirects to `/login`
@@ -49,6 +50,7 @@ Dev server proxies `/api/*` → `http://localhost:8000`. No CORS config needed i
 ## Design System
 
 CSS custom properties defined in [`src/index.css`](src/index.css). Key tokens:
+
 - Colors: `--cream`, `--forest`, `--ink`, `--amber`, `--rose`, `--sky` (oklch-based)
 - Fonts: `--font-display` (Instrument Serif), `--font-body` (DM Sans)
 - Radii: `--radius-sm/--radius/--radius-lg/--radius-xl`
