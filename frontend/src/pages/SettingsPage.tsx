@@ -4,6 +4,8 @@ import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi } f
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
+import { Select } from '../components/ui/Select';
+import { DatePicker } from '../components/ui/DatePicker';
 import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
 
@@ -129,7 +131,20 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
 
   useEffect(() => {
     aiProviderApi.get()
-      .then((p) => { setProvider(p); setForm({ provider: p.provider, model: p.model, api_key: '' }); })
+      .then(async (p) => {
+        setProvider(p);
+        setForm({ provider: p.provider, model: p.model, api_key: '' });
+        // Fetch available models using the stored key so the user can change model
+        setFetchingModels(true);
+        try {
+          const { models: fetched } = await aiProviderApi.listModels();
+          setModels(fetched);
+        } catch {
+          setModels([]);
+        } finally {
+          setFetchingModels(false);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -163,7 +178,16 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       });
       setProvider(updated);
       setForm((f) => ({ ...f, api_key: '' }));
-      setModels([]);
+      // Re-fetch models using the (possibly new) stored key
+      setFetchingModels(true);
+      try {
+        const { models: fetched } = await aiProviderApi.listModels();
+        setModels(fetched);
+      } catch {
+        setModels([]);
+      } finally {
+        setFetchingModels(false);
+      }
       toast('AI provider saved', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -212,9 +236,11 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
 
       <div className="input-group">
         <label className="input-label">Provider</label>
-        <select className="input" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value, model: '' })}>
-          {AI_PROVIDERS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
+        <Select
+          value={form.provider}
+          onChange={(v) => setForm({ ...form, provider: v, model: '' })}
+          options={AI_PROVIDERS}
+        />
       </div>
 
       <div className="input-group">
@@ -236,27 +262,23 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
             {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
-        {form.api_key && fetchingModels && (
+        {fetchingModels && (
           <span className="input-hint">Fetching available models…</span>
         )}
-        {form.api_key && !fetchingModels && models.length === 0 && (
+        {!fetchingModels && models.length === 0 && form.api_key && (
           <span className="input-hint" style={{ color: 'var(--rose)' }}>Could not fetch models — check your API key</span>
         )}
       </div>
 
       <div className="input-group">
         <label className="input-label">Model</label>
-        <select
-          className="input"
+        <Select
           value={form.model}
-          onChange={(e) => setForm({ ...form, model: e.target.value })}
+          onChange={(v) => setForm({ ...form, model: v })}
+          options={modelOptions.map((m) => ({ value: m, label: m }))}
+          placeholder={fetchingModels ? '— loading models… —' : '— enter API key to load models —'}
           disabled={modelOptions.length === 0}
-        >
-          {modelOptions.length === 0
-            ? <option value="">— enter API key to load models —</option>
-            : modelOptions.map((m) => <option key={m} value={m}>{m}</option>)
-          }
-        </select>
+        />
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -404,7 +426,10 @@ function TokensTab({ toast }: { toast: (msg: string, type?: any) => void }) {
         </div>
         <div className="input-group">
           <label className="input-label">Expiry date (optional)</label>
-          <input className="input" type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
+          <DatePicker
+            value={form.expires_at}
+            onChange={(v) => setForm({ ...form, expires_at: v })}
+          />
         </div>
       </Modal>
     </div>

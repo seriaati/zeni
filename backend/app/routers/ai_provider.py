@@ -68,9 +68,21 @@ async def delete_ai_provider(current_user: CurrentUser, session: DbDep) -> None:
 
 @router.post("/models", status_code=status.HTTP_200_OK)
 async def list_provider_models(
-    _current_user: CurrentUser, api_key: Annotated[str, Body(embed=True)]
+    current_user: CurrentUser,
+    session: DbDep,
+    api_key: Annotated[str | None, Body(embed=True)] = None,
 ) -> AIProviderModelsResponse:
-    client = anthropic_sdk.AsyncAnthropic(api_key=api_key)
+    resolved_key = api_key
+    if not resolved_key:
+        record = await get_ai_provider_record(current_user.id, session)
+        if record is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No AI provider configured and no API key provided.",
+            )
+        resolved_key = _decrypt_key(record.api_key_encrypted)
+
+    client = anthropic_sdk.AsyncAnthropic(api_key=resolved_key)
     try:
         page = await client.models.list(limit=100)
         model_ids = [m.id for m in page.data]

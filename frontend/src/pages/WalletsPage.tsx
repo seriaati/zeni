@@ -5,6 +5,7 @@ import { wallets as walletsApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
+import { SearchableSelect } from '../components/ui/SearchableSelect';
 import type { WalletResponse } from '../lib/types';
 import { CURRENCIES } from '../lib/utils';
 
@@ -159,9 +160,12 @@ export function WalletsPage() {
         </div>
         <div className="input-group">
           <label className="input-label">Currency</label>
-          <select className="input" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <SearchableSelect
+            value={form.currency}
+            onChange={(v) => setForm({ ...form, currency: v })}
+            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+            searchPlaceholder="Search currency…"
+          />
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--ink-mid)' }}>
           <input

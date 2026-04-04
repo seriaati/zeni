@@ -4,6 +4,8 @@ import { recurring as recurringApi, categories as categoriesApi } from '../lib/a
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
+import { Select } from '../components/ui/Select';
+import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, RecurringExpenseResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 
@@ -117,9 +119,11 @@ export function RecurringPage() {
     <>
       <div className="input-group">
         <label className="input-label">Category</label>
-        <select className="input" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <Select
+          value={form.category_id}
+          onChange={(v) => setForm({ ...form, category_id: v })}
+          options={categories.map((c) => ({ value: c.id, label: c.name }))}
+        />
       </div>
       <div className="input-group">
         <label className="input-label">Amount</label>
@@ -131,13 +135,18 @@ export function RecurringPage() {
       </div>
       <div className="input-group">
         <label className="input-label">Frequency</label>
-        <select className="input" value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}>
-          {FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
+        <Select
+          value={form.frequency}
+          onChange={(v) => setForm({ ...form, frequency: v })}
+          options={FREQUENCIES}
+        />
       </div>
       <div className="input-group">
         <label className="input-label">Next due date</label>
-        <input className="input" type="date" value={form.next_due} onChange={(e) => setForm({ ...form, next_due: e.target.value })} />
+        <DatePicker
+          value={form.next_due}
+          onChange={(v) => setForm({ ...form, next_due: v })}
+        />
       </div>
     </>
   );

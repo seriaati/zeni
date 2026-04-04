@@ -3,6 +3,7 @@ import { AlertTriangle, Plus, Pencil, Trash2, TrendingUp } from 'lucide-react';
 import { budgets as budgetsApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
+import { Select } from '../components/ui/Select';
 import type { BudgetResponse, CategoryResponse, WalletResponse } from '../lib/types';
 import { fmt } from '../lib/utils';
 
@@ -119,24 +120,27 @@ export function BudgetsPage() {
       </div>
       <div className="input-group">
         <label className="input-label">Period</label>
-        <select className="input" value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value as 'weekly' | 'monthly' })}>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-        </select>
+        <Select
+          value={form.period}
+          onChange={(v) => setForm({ ...form, period: v as 'weekly' | 'monthly' })}
+          options={[{ value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
+        />
       </div>
       <div className="input-group">
         <label className="input-label">Category (optional)</label>
-        <select className="input" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-          <option value="">All categories</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <Select
+          value={form.category_id}
+          onChange={(v) => setForm({ ...form, category_id: v })}
+          options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+        />
       </div>
       <div className="input-group">
         <label className="input-label">Wallet (optional)</label>
-        <select className="input" value={form.wallet_id} onChange={(e) => setForm({ ...form, wallet_id: e.target.value })}>
-          <option value="">All wallets</option>
-          {wallets.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-        </select>
+        <Select
+          value={form.wallet_id}
+          onChange={(v) => setForm({ ...form, wallet_id: v })}
+          options={[{ value: '', label: 'All wallets' }, ...wallets.map((w) => ({ value: w.id, label: w.name }))]}
+        />
       </div>
     </>
   );
