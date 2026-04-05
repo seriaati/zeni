@@ -1,13 +1,14 @@
 ---
+import t from "../i18n/en.json";
+const c = t.cta;
 ---
 
 <section class="cta" id="get-started">
   <div class="cta-inner reveal">
-    <h2 class="cta-title">Start tracking<br /><em>with intention.</em></h2>
-    <p class="cta-sub">Open source, self-hosted, and built to last. No subscriptions, no lock-in.</p>
+    <h2 class="cta-title">{c.title}<br /><em>{c.titleEm}</em></h2>
+    <p class="cta-sub">{c.sub}</p>
     <div class="cta-actions">
-      <a href="https://zeni-app.seria.moe" class="btn-primary">Try Zeni</a>
-      <a href="#features" class="btn-outline">Explore features</a>
+      <a href={t.site.appUrl} class="btn-primary">{c.btnPrimary}</a>
     </div>
   </div>
 </section>

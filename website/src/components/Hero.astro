@@ -1,20 +1,19 @@
 ---
+import t from "../i18n/en.json";
+const h = t.hero;
 ---
 
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-text">
-      <p class="hero-eyebrow animate-fade-up">Personal finance tracker</p>
+      <p class="hero-eyebrow animate-fade-up">{h.eyebrow}</p>
       <h1 class="hero-headline animate-fade-up delay-1">
-        Money, tracked<br /><em>without the friction.</em>
+        {h.headline}<br /><em>{h.headlineEm}</em>
       </h1>
-      <p class="hero-sub animate-fade-up delay-2">
-        Just say "coffee 4.50" — Zeni understands. AI parses your expenses from
-        text, voice, or a photo of your receipt. No forms, no categories to memorise.
-      </p>
+      <p class="hero-sub animate-fade-up delay-2">{h.sub}</p>
       <div class="hero-actions animate-fade-up delay-3">
-        <a href="https://zeni-app.seria.moe" class="btn-primary">Try Zeni</a>
-        <a href="#features" class="btn-ghost">See features ↓</a>
+        <a href={t.site.appUrl} class="btn-primary">{h.ctaPrimary}</a>
+        <a href="#features" class="btn-ghost">{h.ctaGhost}</a>
       </div>
     </div>
 
@@ -30,43 +29,43 @@
             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
-          <span class="mockup-cmd-text">lunch with team 38<span class="mockup-cursor">|</span></span>
-          <span class="mockup-cmd-hint">⌘K</span>
+          <span class="mockup-cmd-text">{h.mockup.cmdText}<span class="mockup-cursor">|</span></span>
+          <span class="mockup-cmd-hint">{h.mockup.cmdHint}</span>
         </div>
         <div class="mockup-result">
           <div class="mockup-row">
-            <span class="mockup-label">Amount</span>
-            <span class="mockup-value mockup-value--display">$38.00</span>
+            <span class="mockup-label">{h.mockup.labelAmount}</span>
+            <span class="mockup-value mockup-value--display">{h.mockup.amount}</span>
           </div>
           <div class="mockup-row">
-            <span class="mockup-label">Category</span>
-            <span class="mockup-value">🍽 Dining</span>
+            <span class="mockup-label">{h.mockup.labelCategory}</span>
+            <span class="mockup-value">{h.mockup.category}</span>
           </div>
           <div class="mockup-row">
-            <span class="mockup-label">Tags</span>
-            <span class="mockup-chip">work</span>
-            <span class="mockup-chip mockup-chip--new">✦ team</span>
+            <span class="mockup-label">{h.mockup.labelTags}</span>
+            <span class="mockup-chip">{h.mockup.tagWork}</span>
+            <span class="mockup-chip mockup-chip--new">{h.mockup.tagTeam}</span>
           </div>
-          <p class="mockup-ai-note">AI understood: lunch expense with colleagues</p>
+          <p class="mockup-ai-note">{h.mockup.aiNote}</p>
           <div class="mockup-actions">
-            <button class="mockup-btn-ghost">Edit</button>
-            <button class="mockup-btn-primary">Save expense</button>
+            <button class="mockup-btn-ghost">{h.mockup.btnEdit}</button>
+            <button class="mockup-btn-primary">{h.mockup.btnSave}</button>
           </div>
         </div>
       </div>
 
       <div class="stat-card stat-card--month">
-        <span class="stat-label">This month</span>
-        <span class="stat-value">$1,240</span>
-        <span class="stat-sub">42 expenses</span>
+        <span class="stat-label">{h.statMonth.label}</span>
+        <span class="stat-value">{h.statMonth.value}</span>
+        <span class="stat-sub">{h.statMonth.sub}</span>
       </div>
 
       <div class="stat-card stat-card--budget">
-        <span class="stat-label">Dining budget</span>
+        <span class="stat-label">{h.statBudget.label}</span>
         <div class="stat-bar-wrap">
           <div class="stat-bar" style="width: 68%"></div>
         </div>
-        <span class="stat-sub">68% used · $64 left</span>
+        <span class="stat-sub">{h.statBudget.sub}</span>
       </div>
     </div>
   </div>
@@ -177,12 +176,6 @@
   border: 1px solid var(--cream-darker);
   position: relative;
   z-index: 1;
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.hero-visual:hover .mockup-shell {
-  transform: translateY(-4px) rotate(-0.5deg);
-  box-shadow: 0 28px 72px oklch(18% 0.02 80 / 0.16), 0 4px 16px oklch(18% 0.02 80 / 0.1);
 }
 
 .mockup-bar {

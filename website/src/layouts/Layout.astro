@@ -1,6 +1,7 @@
 ---
-import '../styles/global.css';
-import logoSrc from '../assets/logo.svg?url';
+import "../styles/global.css";
+import logoSrc from "../assets/logo.svg?url";
+import t from "../i18n/en.json";
 
 interface Props {
   title?: string;
@@ -8,8 +9,8 @@ interface Props {
 }
 
 const {
-  title = 'Zeni — Personal Finance Tracker',
-  description = 'Track expenses effortlessly with AI. Voice input, receipt scanning, smart budgets, and natural language insights — all in one elegant app.',
+  title = t.site.title,
+  description = t.site.description,
 } = Astro.props;
 ---
 
@@ -27,14 +28,13 @@ const {
       <nav class="nav-inner">
         <a href="/" class="nav-logo">
           <img src={logoSrc} alt="" width="22" height="22" />
-          <span>Zeni</span>
+          <span>{t.nav.logo}</span>
         </a>
         <div class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#ai">AI</a>
-          <a href="#privacy">Privacy</a>
+          <a href="#features">{t.nav.features}</a>
+          <a href="#privacy">{t.nav.privacy}</a>
         </div>
-        <a href="https://zeni-app.seria.moe" class="nav-cta">Get started</a>
+        <a href={t.site.appUrl} class="nav-cta">{t.nav.cta}</a>
       </nav>
     </header>
 
@@ -46,9 +46,9 @@ const {
       <div class="footer-inner">
         <div class="footer-brand">
           <img src={logoSrc} alt="" width="18" height="18" />
-          <span>Zeni</span>
+          <span>{t.footer.brand}</span>
         </div>
-        <p class="footer-copy">Personal finance, made thoughtful.</p>
+        <p class="footer-copy">{t.footer.tagline}</p>
       </div>
     </footer>
 
@@ -57,15 +57,15 @@ const {
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              entry.target.classList.add('is-visible');
+              entry.target.classList.add("is-visible");
               observer.unobserve(entry.target);
             }
           });
         },
-        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+        { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
       );
 
-      document.querySelectorAll('.reveal, .reveal-scale').forEach((el) => {
+      document.querySelectorAll(".reveal, .reveal-scale").forEach((el) => {
         observer.observe(el);
       });
     </script>
@@ -88,8 +88,14 @@ const {
   }
 
   @keyframes navEnter {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .nav-inner {
@@ -135,7 +141,9 @@ const {
     background: var(--forest);
     padding: 7px 16px;
     border-radius: var(--radius);
-    transition: opacity 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+    transition:
+      opacity 0.15s,
+      transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
     flex-shrink: 0;
   }
 
