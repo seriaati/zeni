@@ -144,6 +144,11 @@ async def chat_about_expenses(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid API key. Please update your AI provider configuration.",
         ) from exc
+    except anthropic_sdk.PermissionDeniedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="AI provider request was denied. Your API key may have insufficient credits or billing issues.",
+        ) from exc
     except anthropic_sdk.RateLimitError as exc:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
