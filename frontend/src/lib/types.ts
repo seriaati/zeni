@@ -147,6 +147,7 @@ export interface AIProviderResponse {
   provider: string;
   model: string;
   api_key_masked: string;
+  ocr_enabled: boolean;
 }
 
 export interface AIProviderModelsResponse {

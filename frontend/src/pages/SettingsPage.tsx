@@ -126,7 +126,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '' });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: true });
   const [models, setModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
 
@@ -134,7 +134,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
     aiProviderApi.get()
       .then(async (p) => {
         setProvider(p);
-        setForm({ provider: p.provider, model: p.model, api_key: '' });
+        setForm({ provider: p.provider, model: p.model, api_key: '', ocr_enabled: p.ocr_enabled });
         // Fetch available models using the stored key so the user can change model
         setFetchingModels(true);
         try {
@@ -146,7 +146,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
           setFetchingModels(false);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -176,6 +176,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
         provider: form.provider,
         model: form.model,
         api_key: form.api_key || '***',
+        ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
       setForm((f) => ({ ...f, api_key: '' }));
@@ -203,7 +204,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       await aiProviderApi.delete();
       setProvider(null);
       setModels([]);
-      setForm({ provider: 'anthropic', model: '', api_key: '' });
+      setForm({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: true });
       toast('AI provider removed', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -226,7 +227,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
               {AI_PROVIDERS.find((p) => p.value === provider.provider)?.label ?? provider.provider} configured
             </span>
             <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
-              Model: {provider.model} · Key: {provider.api_key_masked}
+              Model: {provider.model} · Key: {provider.api_key_masked} · OCR: {provider.ocr_enabled ? 'on' : 'off'}
             </span>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={saving} style={{ marginLeft: 'auto', color: 'var(--rose)' }}>
@@ -282,7 +283,21 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
         />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={form.ocr_enabled}
+            onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
+            style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 14, color: 'var(--ink)' }}>
+            Use OCR for image parsing
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+            (can save tokens)
+          </span>
+        </label>
         <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
           {saving && <span className="btn-spinner" />}
           {provider ? 'Update provider' : 'Save provider'}
