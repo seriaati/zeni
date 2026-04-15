@@ -11,7 +11,7 @@ from app.providers.base import (
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
-    ParsedExpense,
+    ParsedExpenseOutput,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -47,7 +47,7 @@ class AnthropicProvider(LLMProvider):
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
-    async def parse_expense(
+    async def parse_expenses(
         self,
         *,
         text: str | None,
@@ -55,7 +55,7 @@ class AnthropicProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpense:
+    ) -> ParsedExpenseOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
@@ -95,10 +95,10 @@ class AnthropicProvider(LLMProvider):
         try:
             response = await self._client.messages.parse(
                 model=self._model,
-                max_tokens=1024,
+                max_tokens=2048,
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": parts}],
-                output_format=ParsedExpense,
+                output_format=ParsedExpenseOutput,
             )
         except Exception as exc:
             raise _wrap_anthropic_error(exc) from exc

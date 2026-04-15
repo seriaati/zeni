@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -15,6 +17,9 @@ class Expense(SQLModel, table=True):
     )
     wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True, ondelete="CASCADE")
     category_id: uuid.UUID = Field(foreign_key="categories.id")
+    group_id: uuid.UUID | None = Field(
+        default=None, foreign_key="expenses.id", index=True, ondelete="CASCADE"
+    )
     amount: float
     description: str | None = Field(default=None, max_length=500)
     date: datetime = Field(

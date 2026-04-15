@@ -1,6 +1,6 @@
 import type {
   AdminSettingsResponse,
-  AIExpenseResponse,
+  AIParseResponse,
   AIProviderModelsResponse,
   AIProviderResponse,
   APITokenCreateResponse,
@@ -11,11 +11,12 @@ import type {
   ExpenseListResponse,
   ExpenseResponse,
   ExpenseSummary,
+  GroupExpenseRequest,
   RecurringExpenseResponse,
   TagResponse,
   TokenResponse,
   UserResponse,
-  VoiceExpenseResponse,
+  VoiceParseResponse,
   WalletResponse,
   WalletSummary,
 } from './types';
@@ -172,7 +173,7 @@ export const expenses = {
     const form = new FormData();
     if (text) form.append('text', text);
     if (file) form.append('file', file);
-    return request<AIExpenseResponse>(`/wallets/${walletId}/expenses/ai`, {
+    return request<AIParseResponse>(`/wallets/${walletId}/expenses/ai`, {
       method: 'POST',
       body: form,
       headers: {},
@@ -181,12 +182,17 @@ export const expenses = {
   voiceParse: (walletId: string, audio: Blob) => {
     const form = new FormData();
     form.append('audio', audio, 'recording.webm');
-    return request<VoiceExpenseResponse>(`/wallets/${walletId}/expenses/voice`, {
+    return request<VoiceParseResponse>(`/wallets/${walletId}/expenses/voice`, {
       method: 'POST',
       body: form,
       headers: {},
     });
   },
+  createGroup: (walletId: string, data: GroupExpenseRequest) =>
+    request<ExpenseResponse>(`/wallets/${walletId}/expenses/groups`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   export: (walletId: string, format: 'csv' | 'json', params: { start_date?: string; end_date?: string } = {}) => {
     const q = new URLSearchParams({ format });
     if (params.start_date) q.set('start_date', params.start_date);

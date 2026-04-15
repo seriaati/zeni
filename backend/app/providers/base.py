@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,22 @@ class ParsedExpense(BaseModel):
     date: str
     ai_context: str
     suggested_tags: list[str] = Field(default_factory=list)
+
+
+class ParsedExpenseGroupInfo(BaseModel):
+    description: str
+    amount: float
+    currency: str
+    category_name: str
+    date: str
+    ai_context: str
+    suggested_tags: list[str] = Field(default_factory=list)
+
+
+class ParsedExpenseOutput(BaseModel):
+    result_type: Literal["single", "multiple", "group"]
+    expenses: list[ParsedExpense]
+    group: ParsedExpenseGroupInfo | None = None
 
 
 @dataclass
@@ -36,9 +53,30 @@ class ChatResponse:
 
 SYSTEM_PROMPT = """\
 You are an expense parsing assistant. Extract expense information from the user's input \
-(text, image, or both) and call the extract_expense tool with the parsed data.
+(text, image, or both) and return structured data.
 
-Rules:
+You must decide which result_type to use:
+- "single": exactly one expense item (e.g. "coffee 4.5")
+- "multiple": two or more independent, unrelated expense items listed together \
+(e.g. "coffee 4.5, salad 2.3, phone 3000") — each gets its own category and tags; \
+do NOT infer a group just because items appear together
+- "group": contextually related items under one explicit umbrella \
+(e.g. "lunch with Sarah: burger 10$, coke 2$", or a receipt scan with a store name and \
+line items) — only use "group" when there is clear context tying the items together; \
+NEVER infer groups from coincidental or unrelated purchases
+
+For "group" result_type:
+- The `group` field must be filled with the parent expense metadata \
+(description = the umbrella label, amount = sum of all children, same currency/date)
+- The `expenses` list contains the individual sub-expenses (children)
+- The parent amount must equal the sum of children amounts
+
+For "single" and "multiple":
+- The `group` field must be null
+- For "single", `expenses` has exactly 1 item
+- For "multiple", `expenses` has N items (one per independent expense)
+
+Rules for each expense item:
 - amount must be a positive number
 - currency must be a 3-letter ISO currency code (e.g. "USD")
 - category_name: FIRST check the provided categories list for a good match. If a match exists, \
@@ -71,7 +109,7 @@ Guidelines:
 
 class LLMProvider(ABC):
     @abstractmethod
-    async def parse_expense(
+    async def parse_expenses(
         self,
         *,
         text: str | None,
@@ -79,7 +117,7 @@ class LLMProvider(ABC):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpense: ...
+    ) -> ParsedExpenseOutput: ...
 
     @abstractmethod
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse: ...

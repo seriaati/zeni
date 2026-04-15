@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
     from sqlmodel.ext.asyncio.session import AsyncSession
 
+    from app.providers.base import ParsedExpense
+
 
 @dataclass
 class SuggestedTagResult:
@@ -46,6 +48,25 @@ class ParsedExpenseResult:
     date: str
     ai_context: str
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+
+
+@dataclass
+class ParsedGroupResult:
+    description: str
+    amount: float
+    currency: str
+    category_name: str
+    is_new_category: bool
+    date: str
+    ai_context: str
+    suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+
+
+@dataclass
+class ParsedExpensesResult:
+    result_type: str
+    expenses: list[ParsedExpenseResult]
+    group: ParsedGroupResult | None = None
 
 
 def _mask_key(key: str) -> str:
@@ -96,13 +117,13 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_expense_with_ai(  # noqa: PLR0914
+async def parse_expenses_with_ai(  # noqa: PLR0914
     user_id: uuid.UUID,
     text: str | None,
     image_base64: str | None,
     image_media_type: str | None,
     session: AsyncSession,
-) -> ParsedExpenseResult:
+) -> ParsedExpensesResult:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
         raise HTTPException(
@@ -130,7 +151,7 @@ async def parse_expense_with_ai(  # noqa: PLR0914
     provider = get_provider(record.provider, api_key=api_key, model=record.model)
 
     try:
-        parsed = await provider.parse_expense(
+        output = await provider.parse_expenses(
             text=text,
             image_base64=image_base64,
             image_media_type=image_media_type,
@@ -178,21 +199,46 @@ async def parse_expense_with_ai(  # noqa: PLR0914
         ) from exc
 
     existing_category_names_lower = {c.name.lower() for c in existing_categories}
-    is_new_category = parsed.category_name.lower() not in existing_category_names_lower
-
     existing_tag_names_lower = {t.name.lower() for t in existing_tags}
-    suggested_tags = [
-        SuggestedTagResult(name=name, is_new=name.lower() not in existing_tag_names_lower)
-        for name in parsed.suggested_tags
-    ]
 
-    return ParsedExpenseResult(
-        amount=parsed.amount,
-        currency=parsed.currency,
-        category_name=parsed.category_name,
-        is_new_category=is_new_category,
-        description=parsed.description,
-        date=parsed.date,
-        ai_context=parsed.ai_context,
-        suggested_tags=suggested_tags,
+    def _enrich_expense(parsed_exp: ParsedExpense) -> ParsedExpenseResult:
+        is_new = parsed_exp.category_name.lower() not in existing_category_names_lower
+        tags = [
+            SuggestedTagResult(name=n, is_new=n.lower() not in existing_tag_names_lower)
+            for n in parsed_exp.suggested_tags
+        ]
+        return ParsedExpenseResult(
+            amount=parsed_exp.amount,
+            currency=parsed_exp.currency,
+            category_name=parsed_exp.category_name,
+            is_new_category=is_new,
+            description=parsed_exp.description,
+            date=parsed_exp.date,
+            ai_context=parsed_exp.ai_context,
+            suggested_tags=tags,
+        )
+
+    enriched_expenses = [_enrich_expense(e) for e in output.expenses]
+
+    enriched_group: ParsedGroupResult | None = None
+    if output.group is not None:
+        g = output.group
+        is_new = g.category_name.lower() not in existing_category_names_lower
+        g_tags = [
+            SuggestedTagResult(name=n, is_new=n.lower() not in existing_tag_names_lower)
+            for n in g.suggested_tags
+        ]
+        enriched_group = ParsedGroupResult(
+            description=g.description,
+            amount=g.amount,
+            currency=g.currency,
+            category_name=g.category_name,
+            is_new_category=is_new,
+            date=g.date,
+            ai_context=g.ai_context,
+            suggested_tags=g_tags,
+        )
+
+    return ParsedExpensesResult(
+        result_type=output.result_type, expenses=enriched_expenses, group=enriched_group
     )

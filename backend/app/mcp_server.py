@@ -143,7 +143,7 @@ async def _fetch_expenses(
         if not wallet_result.first():
             return "Wallet not found"
 
-        query = select(Expense).where(Expense.wallet_id == w_id)
+        query = select(Expense).where(Expense.wallet_id == w_id, col(Expense.group_id).is_(None))
         query, err = _apply_date_filters(query, params.start_date, params.end_date)
         if err:
             return err
@@ -220,7 +220,7 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
         if not wallet_result.first():
             return "Wallet not found"
 
-        query = select(Expense).where(Expense.wallet_id == w_id)
+        query = select(Expense).where(Expense.wallet_id == w_id, col(Expense.group_id).is_(None))
         query, err = _apply_date_filters(query, params.start_date, params.end_date)
         if err:
             return err

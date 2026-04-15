@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -13,6 +15,7 @@ class ExpenseCreate(BaseModel):
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
     tag_names: list[str] = Field(default_factory=list)
     ai_context: str | None = None
+    group_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def validate_category(self) -> ExpenseCreate:
@@ -25,6 +28,11 @@ class ExpenseCreate(BaseModel):
             msg = "Provide either category_id or category_name"
             raise ValueError(msg)
         return self
+
+
+class ExpenseGroupCreate(BaseModel):
+    group: ExpenseCreate
+    items: list[ExpenseCreate]
 
 
 class ExpenseUpdate(BaseModel):
@@ -59,6 +67,8 @@ class ExpenseResponse(BaseModel):
     tags: list[TagBrief]
     created_at: datetime
     updated_at: datetime
+    group_id: uuid.UUID | None = None
+    children: list[ExpenseResponse] | None = None
 
 
 class ExpenseListResponse(BaseModel):

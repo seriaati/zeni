@@ -13,7 +13,7 @@ from app.providers.base import (
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
-    ParsedExpense,
+    ParsedExpenseOutput,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -54,7 +54,7 @@ class GeminiProvider(LLMProvider):
         self._client = genai.Client(api_key=api_key)
         self._model = model
 
-    async def parse_expense(
+    async def parse_expenses(
         self,
         *,
         text: str | None,
@@ -62,7 +62,7 @@ class GeminiProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpense:
+    ) -> ParsedExpenseOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
@@ -92,7 +92,7 @@ class GeminiProvider(LLMProvider):
 
         parts.append(genai_types.Part.from_text(text=prompt_text))
 
-        schema = ParsedExpense.model_json_schema()
+        schema = ParsedExpenseOutput.model_json_schema()
 
         try:
             response = await self._client.aio.models.generate_content(
@@ -112,7 +112,7 @@ class GeminiProvider(LLMProvider):
             msg = "Failed to parse expense from input"
             raise ValueError(msg)
 
-        return ParsedExpense.model_validate(json.loads(raw_text))
+        return ParsedExpenseOutput.model_validate(json.loads(raw_text))
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
         by_category_lines = "\n".join(

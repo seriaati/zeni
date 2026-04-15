@@ -15,7 +15,7 @@ from app.providers.base import (
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
-    ParsedExpense,
+    ParsedExpenseOutput,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -48,7 +48,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
-    async def parse_expense(
+    async def parse_expenses(
         self,
         *,
         text: str | None,
@@ -56,7 +56,7 @@ class OpenAICompatibleProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpense:
+    ) -> ParsedExpenseOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
@@ -90,12 +90,12 @@ class OpenAICompatibleProvider(LLMProvider):
         try:
             response = await self._client.beta.chat.completions.parse(
                 model=self._model,
-                max_tokens=1024,
+                max_tokens=2048,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": parts},
                 ],
-                response_format=ParsedExpense,
+                response_format=ParsedExpenseOutput,
             )
         except Exception as exc:
             raise _wrap_openai_error(exc) from exc
@@ -104,7 +104,7 @@ class OpenAICompatibleProvider(LLMProvider):
         if parsed is None:
             raw = response.choices[0].message.content or ""
             try:
-                return ParsedExpense.model_validate(json.loads(raw))
+                return ParsedExpenseOutput.model_validate(json.loads(raw))
             except Exception as exc:
                 msg = "Failed to parse expense from input"
                 raise ValueError(msg) from exc

@@ -66,6 +66,8 @@ export interface ExpenseResponse {
   date: string;
   ai_context: string | null;
   tags: TagBrief[];
+  group_id: string | null;
+  children: ExpenseResponse[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -100,8 +102,36 @@ export interface AIExpenseResponse {
   suggested_tags: SuggestedTag[];
 }
 
-export interface VoiceExpenseResponse extends AIExpenseResponse {
+export interface AIParseResponse {
+  result_type: 'single' | 'multiple' | 'group';
+  expenses: AIExpenseResponse[];
+  group: AIExpenseResponse | null;
+}
+
+export interface VoiceParseResponse extends AIParseResponse {
   transcript: string;
+}
+
+export interface GroupExpenseItemRequest {
+  category_name?: string;
+  category_id?: string;
+  amount: number;
+  description?: string;
+  tag_names?: string[];
+  tag_ids?: string[];
+}
+
+export interface GroupExpenseRequest {
+  group: {
+    category_name?: string;
+    category_id?: string;
+    amount: number;
+    description?: string;
+    date?: string;
+    tag_names?: string[];
+    tag_ids?: string[];
+  };
+  items: GroupExpenseItemRequest[];
 }
 
 export interface BudgetResponse {

@@ -4,7 +4,7 @@ import base64 as _b64
 import operator
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
@@ -17,17 +17,27 @@ from app.models.expense import Expense, ExpenseTag
 from app.models.tag import Tag
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.schemas.ai_provider import AIExpenseResponse, SuggestedTag, VoiceExpenseResponse
+from app.schemas.ai_provider import (
+    AIExpenseGroupInfo,
+    AIExpenseItem,
+    AIExpensesResponse,
+    SuggestedTag,
+    VoiceExpensesResponse,
+)
 from app.schemas.expense import (
     CategoryBrief,
     ExpenseCreate,
+    ExpenseGroupCreate,
     ExpenseListResponse,
     ExpenseResponse,
     ExpenseSummary,
     ExpenseUpdate,
     TagBrief,
 )
-from app.services.ai_expense import parse_expense_with_ai
+from app.services.ai_expense import parse_expenses_with_ai
+
+if TYPE_CHECKING:
+    from app.services.ai_expense import ParsedExpenseResult
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
 from app.services.voice import transcribe_audio
@@ -62,7 +72,9 @@ async def _get_expense_or_404(
     return expense
 
 
-async def _build_expense_response(expense: Expense, session: AsyncSession) -> ExpenseResponse:
+async def _build_expense_response(
+    expense: Expense, session: AsyncSession, include_children: bool = True
+) -> ExpenseResponse:
     cat_result = await session.exec(select(Category).where(Category.id == expense.category_id))
     cat = cat_result.first()
     category_brief = (
@@ -78,6 +90,18 @@ async def _build_expense_response(expense: Expense, session: AsyncSession) -> Ex
     )
     tags = [TagBrief(id=t.id, name=t.name, color=t.color) for t in tag_result.all()]
 
+    children: list[ExpenseResponse] | None = None
+    if include_children and expense.group_id is None:
+        child_result = await session.exec(
+            select(Expense).where(col(Expense.group_id) == expense.id)
+        )
+        child_expenses = child_result.all()
+        if child_expenses:
+            children = [
+                await _build_expense_response(c, session, include_children=False)
+                for c in child_expenses
+            ]
+
     return ExpenseResponse(
         id=expense.id,
         wallet_id=expense.wallet_id,
@@ -89,6 +113,8 @@ async def _build_expense_response(expense: Expense, session: AsyncSession) -> Ex
         tags=tags,
         created_at=expense.created_at,
         updated_at=expense.updated_at,
+        group_id=expense.group_id,
+        children=children,
     )
 
 
@@ -113,6 +139,65 @@ async def _validate_category(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
 
+async def _create_single_expense(
+    wallet_id: uuid.UUID,
+    body: ExpenseCreate,
+    user_id: uuid.UUID,
+    session: AsyncSession,
+    group_id: uuid.UUID | None = None,
+) -> Expense:
+    if body.category_id is not None:
+        await _validate_category(body.category_id, user_id, session)
+        resolved_category_id = body.category_id
+    else:
+        assert body.category_name is not None
+        category = await find_or_create_category(
+            user_id=user_id, name=body.category_name, session=session
+        )
+        resolved_category_id = category.id
+
+    await _validate_tag_ids(body.tag_ids, user_id, session)
+
+    name_resolved_tag_ids: list[uuid.UUID] = []
+    for name in body.tag_names:
+        tag = await find_or_create_tag(user_id=user_id, name=name, session=session)
+        name_resolved_tag_ids.append(tag.id)
+
+    all_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
+
+    effective_group_id = group_id if group_id is not None else body.group_id
+
+    expense = Expense(
+        wallet_id=wallet_id,
+        category_id=resolved_category_id,
+        group_id=effective_group_id,
+        amount=body.amount,
+        description=body.description,
+        date=body.date or datetime.now(UTC),
+        ai_context=body.ai_context,
+    )
+    session.add(expense)
+    await session.flush()
+
+    for tag_id in all_tag_ids:
+        session.add(ExpenseTag(expense_id=expense.id, tag_id=tag_id))
+
+    return expense
+
+
+def _build_ai_expense_item(parsed: ParsedExpenseResult) -> AIExpenseItem:
+    return AIExpenseItem(
+        amount=parsed.amount,
+        currency=parsed.currency,
+        category_name=parsed.category_name,
+        is_new_category=parsed.is_new_category,
+        description=parsed.description,
+        date=parsed.date,
+        ai_context=parsed.ai_context,
+        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
+    )
+
+
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
 async def create_expense_ai(
     wallet_id: uuid.UUID,
@@ -120,7 +205,7 @@ async def create_expense_ai(
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
     file: Annotated[UploadFile | None, File()] = None,
-) -> AIExpenseResponse:
+) -> AIExpensesResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     if not text and not file:
@@ -147,7 +232,7 @@ async def create_expense_ai(
                 detail="Unsupported file type. Only images and PDFs are accepted.",
             )
 
-    parsed = await parse_expense_with_ai(
+    parsed = await parse_expenses_with_ai(
         user_id=current_user.id,
         text=text,
         image_base64=image_base64,
@@ -155,15 +240,24 @@ async def create_expense_ai(
         session=session,
     )
 
-    return AIExpenseResponse(
-        amount=parsed.amount,
-        currency=parsed.currency,
-        category_name=parsed.category_name,
-        is_new_category=parsed.is_new_category,
-        description=parsed.description,
-        date=parsed.date,
-        ai_context=parsed.ai_context,
-        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
+    group: AIExpenseGroupInfo | None = None
+    if parsed.group is not None:
+        g = parsed.group
+        group = AIExpenseGroupInfo(
+            description=g.description,
+            amount=g.amount,
+            currency=g.currency,
+            category_name=g.category_name,
+            is_new_category=g.is_new_category,
+            date=g.date,
+            ai_context=g.ai_context,
+            suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
+        )
+
+    return AIExpensesResponse(
+        result_type=parsed.result_type,
+        expenses=[_build_ai_expense_item(e) for e in parsed.expenses],
+        group=group,
     )
 
 
@@ -173,7 +267,7 @@ async def create_expense_voice(
     current_user: CurrentUser,
     session: DbDep,
     audio: Annotated[UploadFile, File()],
-) -> VoiceExpenseResponse:
+) -> VoiceExpensesResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     audio_bytes = await audio.read()
@@ -185,7 +279,7 @@ async def create_expense_voice(
     content_type = audio.content_type or "audio/webm"
     transcript = await transcribe_audio(audio_bytes, content_type)
 
-    parsed = await parse_expense_with_ai(
+    parsed = await parse_expenses_with_ai(
         user_id=current_user.id,
         text=transcript,
         image_base64=None,
@@ -193,17 +287,49 @@ async def create_expense_voice(
         session=session,
     )
 
-    return VoiceExpenseResponse(
+    group: AIExpenseGroupInfo | None = None
+    if parsed.group is not None:
+        g = parsed.group
+        group = AIExpenseGroupInfo(
+            description=g.description,
+            amount=g.amount,
+            currency=g.currency,
+            category_name=g.category_name,
+            is_new_category=g.is_new_category,
+            date=g.date,
+            ai_context=g.ai_context,
+            suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
+        )
+
+    return VoiceExpensesResponse(
         transcript=transcript,
-        amount=parsed.amount,
-        currency=parsed.currency,
-        category_name=parsed.category_name,
-        is_new_category=parsed.is_new_category,
-        description=parsed.description,
-        date=parsed.date,
-        ai_context=parsed.ai_context,
-        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
+        result_type=parsed.result_type,
+        expenses=[_build_ai_expense_item(e) for e in parsed.expenses],
+        group=group,
     )
+
+
+@router.post("/groups", status_code=status.HTTP_201_CREATED)
+async def create_expense_group(
+    wallet_id: uuid.UUID, body: ExpenseGroupCreate, current_user: CurrentUser, session: DbDep
+) -> ExpenseResponse:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+
+    parent = await _create_single_expense(wallet_id, body.group, current_user.id, session)
+
+    expected_total = sum(item.amount for item in body.items)
+    if abs(expected_total - body.group.amount) > 0.001:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Sum of children amounts ({expected_total}) must equal group amount ({body.group.amount})",
+        )
+
+    for item in body.items:
+        await _create_single_expense(wallet_id, item, current_user.id, session, group_id=parent.id)
+
+    await session.commit()
+    await session.refresh(parent)
+    return await _build_expense_response(parent, session)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -212,38 +338,7 @@ async def create_expense(
 ) -> ExpenseResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    if body.category_id is not None:
-        await _validate_category(body.category_id, current_user.id, session)
-        resolved_category_id = body.category_id
-    else:
-        assert body.category_name is not None
-        category = await find_or_create_category(
-            user_id=current_user.id, name=body.category_name, session=session
-        )
-        resolved_category_id = category.id
-
-    await _validate_tag_ids(body.tag_ids, current_user.id, session)
-
-    name_resolved_tag_ids: list[uuid.UUID] = []
-    for name in body.tag_names:
-        tag = await find_or_create_tag(user_id=current_user.id, name=name, session=session)
-        name_resolved_tag_ids.append(tag.id)
-
-    all_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
-
-    expense = Expense(
-        wallet_id=wallet_id,
-        category_id=resolved_category_id,
-        amount=body.amount,
-        description=body.description,
-        date=body.date or datetime.now(UTC),
-        ai_context=body.ai_context,
-    )
-    session.add(expense)
-    await session.flush()
-
-    for tag_id in all_tag_ids:
-        session.add(ExpenseTag(expense_id=expense.id, tag_id=tag_id))
+    expense = await _create_single_expense(wallet_id, body, current_user.id, session)
 
     await session.commit()
     await session.refresh(expense)
@@ -260,7 +355,9 @@ async def get_expense_summary(
 ) -> ExpenseSummary:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    base_query = select(Expense).where(Expense.wallet_id == wallet_id)
+    base_query = select(Expense).where(
+        Expense.wallet_id == wallet_id, col(Expense.group_id).is_(None)
+    )
     if start_date:
         base_query = base_query.where(col(Expense.date) >= start_date)
     if end_date:
@@ -318,10 +415,14 @@ async def list_expenses(  # noqa: PLR0913, PLR0917
     search: Annotated[str | None, Query()] = None,
     sort_by: Annotated[str, Query(pattern="^(date|amount|category)$")] = "date",
     sort_order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+    include_children: Annotated[bool, Query()] = False,
 ) -> ExpenseListResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     query = select(Expense).where(Expense.wallet_id == wallet_id)
+
+    if not include_children:
+        query = query.where(col(Expense.group_id).is_(None))
 
     if start_date:
         query = query.where(col(Expense.date) >= start_date)
