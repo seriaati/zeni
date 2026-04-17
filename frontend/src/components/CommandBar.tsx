@@ -168,7 +168,7 @@ function ExpenseCard({
             />
           ) : (
             <div style={{ fontSize: 16, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-              {expense.amount != null ? fmt(expense.amount, expense.currency ?? currency) : '—'}
+              {expense.amount != null ? fmt(expense.amount, currency ?? expense.currency ?? 'USD') : '—'}
             </div>
           )}
         </div>
@@ -483,7 +483,7 @@ function GroupReview({
               fontWeight: 600,
               color: sumMismatch ? 'var(--rose)' : 'var(--forest)',
             }}>
-              {fmt(itemsSum, parent.currency ?? activeWalletCurrency)} / {fmt(parentTotal, parent.currency ?? activeWalletCurrency)}
+              {fmt(itemsSum, activeWalletCurrency ?? parent.currency ?? 'USD')} / {fmt(parentTotal, activeWalletCurrency ?? parent.currency ?? 'USD')}
             </span>
             <button
               className="btn btn-secondary btn-sm"
@@ -540,7 +540,7 @@ function GroupReview({
 
           {sumMismatch && !error && (
             <div style={{ fontSize: 12, color: 'var(--rose)', background: 'var(--rose-light)', borderRadius: 8, padding: '8px 12px' }}>
-              Items sum ({fmt(itemsSum, parent.currency ?? activeWalletCurrency)}) must equal group total ({fmt(parentTotal, parent.currency ?? activeWalletCurrency)})
+              Items sum ({fmt(itemsSum, activeWalletCurrency ?? parent.currency ?? 'USD')}) must equal group total ({fmt(parentTotal, activeWalletCurrency ?? parent.currency ?? 'USD')})
             </div>
           )}
         </>
