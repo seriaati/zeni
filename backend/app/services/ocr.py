@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import base64
 import logging
+from typing import TYPE_CHECKING
 
-from rapidocr_onnxruntime import RapidOCR
+if TYPE_CHECKING:
+    from rapidocr_onnxruntime import RapidOCR
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,8 @@ _ocr: RapidOCR | None = None
 def _get_ocr() -> RapidOCR:
     global _ocr  # noqa: PLW0603
     if _ocr is None:
+        from rapidocr_onnxruntime import RapidOCR  # noqa: PLC0415
+
         _ocr = RapidOCR()
     return _ocr
 
