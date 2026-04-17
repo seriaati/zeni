@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
+import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
@@ -321,6 +321,7 @@ export function ExpenseDetailPage() {
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const [currency, setCurrency] = useState('USD');
 
   const [expense, setExpense] = useState<ExpenseResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -345,7 +346,9 @@ export function ExpenseDetailPage() {
       expensesApi.get(walletId, expenseId),
       categoriesApi.list(),
       tagsApi.list(),
-    ]).then(([exp, cats, tags]) => {
+      walletsApi.get(walletId),
+    ]).then(([exp, cats, tags, wallet]) => {
+      setCurrency(wallet.currency);
       setExpense(exp);
       setCategories(cats);
       setAllTags(tags);
@@ -520,7 +523,7 @@ export function ExpenseDetailPage() {
             />
           ) : (
             <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-              {fmt(expense.amount)}
+              {fmt(expense.amount, currency)}
             </div>
           )}
         </div>
@@ -637,14 +640,14 @@ export function ExpenseDetailPage() {
                     <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{child.category.name}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
-                    {fmt(child.amount)}
+                    {fmt(child.amount, currency)}
                   </div>
                 </Link>
               ))}
             </div>
             <div style={{ borderTop: '1px solid var(--cream-darker)', marginTop: 8, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
               <span>{expense.children.length} item{expense.children.length !== 1 ? 's' : ''}</span>
-              <span style={{ fontWeight: 600 }}>{fmt(expense.children.reduce((s, c) => s + c.amount, 0))}</span>
+              <span style={{ fontWeight: 600 }}>{fmt(expense.children.reduce((s, c) => s + c.amount, 0), currency)}</span>
             </div>
           </div>
         )}
