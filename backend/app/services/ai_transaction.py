@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from sqlmodel.ext.asyncio.session import AsyncSession
 
-    from app.providers.base import ParsedExpense
+    from app.providers.base import ParsedTransaction
 
 
 @dataclass
@@ -39,7 +39,7 @@ class SuggestedTagResult:
 
 
 @dataclass
-class ParsedExpenseResult:
+class ParsedTransactionResult:
     amount: float
     currency: str
     category_name: str
@@ -47,6 +47,7 @@ class ParsedExpenseResult:
     description: str
     date: str
     ai_context: str
+    type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
 
 
@@ -59,13 +60,14 @@ class ParsedGroupResult:
     is_new_category: bool
     date: str
     ai_context: str
+    type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
 
 
 @dataclass
-class ParsedExpensesResult:
+class ParsedTransactionsResult:
     result_type: str
-    expenses: list[ParsedExpenseResult]
+    expenses: list[ParsedTransactionResult]
     group: ParsedGroupResult | None = None
 
 
@@ -117,13 +119,13 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_expenses_with_ai(  # noqa: PLR0914
+async def parse_transactions_with_ai(  # noqa: PLR0914
     user_id: uuid.UUID,
     text: str | None,
     image_base64: str | None,
     image_media_type: str | None,
     session: AsyncSession,
-) -> ParsedExpensesResult:
+) -> ParsedTransactionsResult:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
         raise HTTPException(
@@ -151,7 +153,7 @@ async def parse_expenses_with_ai(  # noqa: PLR0914
     provider = get_provider(record.provider, api_key=api_key, model=record.model)
 
     try:
-        output = await provider.parse_expenses(
+        output = await provider.parse_transactions(
             text=text,
             image_base64=image_base64,
             image_media_type=image_media_type,
@@ -159,26 +161,30 @@ async def parse_expenses_with_ai(  # noqa: PLR0914
             tags=tag_names,
         )
     except ProviderAuthError as exc:
-        logger.warning("AI expense parse failed - auth error for user %s: %s", user_id, exc)
+        logger.warning("AI transaction parse failed - auth error for user %s: %s", user_id, exc)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid API key. Please update your AI provider configuration.",
         ) from exc
     except ProviderPermissionError as exc:
-        logger.warning("AI expense parse failed - permission error for user %s: %s", user_id, exc)
+        logger.warning(
+            "AI transaction parse failed - permission error for user %s: %s", user_id, exc
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="AI provider request was denied. Your API key may have insufficient credits or billing issues.",
         ) from exc
     except ProviderRateLimitError as exc:
-        logger.warning("AI expense parse failed - rate limit for user %s: %s", user_id, exc)
+        logger.warning("AI transaction parse failed - rate limit for user %s: %s", user_id, exc)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="AI provider rate limit exceeded. Please try again later.",
         ) from exc
     except ProviderConnectionError as exc:
         logger.exception(
-            "AI expense parse failed - connection error for user %s model=%s", user_id, record.model
+            "AI transaction parse failed - connection error for user %s model=%s",
+            user_id,
+            record.model,
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -186,39 +192,40 @@ async def parse_expenses_with_ai(  # noqa: PLR0914
         ) from exc
     except ProviderAPIError as exc:
         logger.exception(
-            "AI expense parse failed - API error for user %s model=%s", user_id, record.model
+            "AI transaction parse failed - API error for user %s model=%s", user_id, record.model
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI provider error: {exc}"
         ) from exc
     except (ValueError, KeyError) as exc:
-        logger.exception("AI expense parse failed - parse error for user %s", user_id)
+        logger.exception("AI transaction parse failed - parse error for user %s", user_id)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Could not parse expense from input: {exc}",
+            detail=f"Could not parse transaction from input: {exc}",
         ) from exc
 
     existing_category_names_lower = {c.name.lower() for c in existing_categories}
     existing_tag_names_lower = {t.name.lower() for t in existing_tags}
 
-    def _enrich_expense(parsed_exp: ParsedExpense) -> ParsedExpenseResult:
-        is_new = parsed_exp.category_name.lower() not in existing_category_names_lower
+    def _enrich_transaction(parsed_txn: ParsedTransaction) -> ParsedTransactionResult:
+        is_new = parsed_txn.category_name.lower() not in existing_category_names_lower
         tags = [
             SuggestedTagResult(name=n, is_new=n.lower() not in existing_tag_names_lower)
-            for n in parsed_exp.suggested_tags
+            for n in parsed_txn.suggested_tags
         ]
-        return ParsedExpenseResult(
-            amount=parsed_exp.amount,
-            currency=parsed_exp.currency,
-            category_name=parsed_exp.category_name,
+        return ParsedTransactionResult(
+            amount=parsed_txn.amount,
+            currency=parsed_txn.currency,
+            category_name=parsed_txn.category_name,
             is_new_category=is_new,
-            description=parsed_exp.description,
-            date=parsed_exp.date,
-            ai_context=parsed_exp.ai_context,
+            description=parsed_txn.description,
+            date=parsed_txn.date,
+            ai_context=parsed_txn.ai_context,
+            type=parsed_txn.type,
             suggested_tags=tags,
         )
 
-    enriched_expenses = [_enrich_expense(e) for e in output.expenses]
+    enriched_transactions = [_enrich_transaction(e) for e in output.expenses]
 
     enriched_group: ParsedGroupResult | None = None
     if output.group is not None:
@@ -236,9 +243,10 @@ async def parse_expenses_with_ai(  # noqa: PLR0914
             is_new_category=is_new,
             date=g.date,
             ai_context=g.ai_context,
+            type=g.type,
             suggested_tags=g_tags,
         )
 
-    return ParsedExpensesResult(
-        result_type=output.result_type, expenses=enriched_expenses, group=enriched_group
+    return ParsedTransactionsResult(
+        result_type=output.result_type, expenses=enriched_transactions, group=enriched_group
     )

@@ -9,7 +9,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
-from app.models.expense import Expense
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.wallet import WalletCreate, WalletResponse, WalletSummary, WalletUpdate
@@ -76,17 +76,37 @@ async def get_wallet(
 ) -> WalletSummary:
     wallet = await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    total_result = await session.exec(
-        select(func.coalesce(func.sum(Expense.amount), 0.0)).where(Expense.wallet_id == wallet_id)
-    )
-    total = total_result.one()
-
-    count_result = await session.exec(
-        select(func.count()).select_from(
-            select(Expense).where(Expense.wallet_id == wallet_id).subquery()
+    expense_total_result = await session.exec(
+        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+            Transaction.wallet_id == wallet_id, Transaction.type == "expense"
         )
     )
-    count = count_result.one()
+    total_expenses = expense_total_result.one()
+
+    expense_count_result = await session.exec(
+        select(func.count()).select_from(
+            select(Transaction)
+            .where(Transaction.wallet_id == wallet_id, Transaction.type == "expense")
+            .subquery()
+        )
+    )
+    expense_count = expense_count_result.one()
+
+    income_total_result = await session.exec(
+        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+            Transaction.wallet_id == wallet_id, Transaction.type == "income"
+        )
+    )
+    total_income = income_total_result.one()
+
+    income_count_result = await session.exec(
+        select(func.count()).select_from(
+            select(Transaction)
+            .where(Transaction.wallet_id == wallet_id, Transaction.type == "income")
+            .subquery()
+        )
+    )
+    income_count = income_count_result.one()
 
     return WalletSummary(
         id=wallet.id,
@@ -95,8 +115,11 @@ async def get_wallet(
         currency=wallet.currency,
         is_default=wallet.is_default,
         created_at=wallet.created_at,
-        total_expenses=float(total),
-        expense_count=int(count),
+        total_expenses=float(total_expenses),
+        expense_count=int(expense_count),
+        total_income=float(total_income),
+        income_count=int(income_count),
+        balance=float(total_income) - float(total_expenses),
     )
 
 

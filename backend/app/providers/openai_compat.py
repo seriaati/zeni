@@ -15,7 +15,7 @@ from app.providers.base import (
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
-    ParsedExpenseOutput,
+    ParsedTransactionOutput,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -48,7 +48,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
-    async def parse_expenses(
+    async def parse_transactions(
         self,
         *,
         text: str | None,
@@ -56,7 +56,7 @@ class OpenAICompatibleProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpenseOutput:
+    ) -> ParsedTransactionOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
@@ -95,7 +95,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": parts},
                 ],
-                response_format=ParsedExpenseOutput,
+                response_format=ParsedTransactionOutput,
             )
         except Exception as exc:
             raise _wrap_openai_error(exc) from exc
@@ -104,7 +104,7 @@ class OpenAICompatibleProvider(LLMProvider):
         if parsed is None:
             raw = response.choices[0].message.content or ""
             try:
-                return ParsedExpenseOutput.model_validate(json.loads(raw))
+                return ParsedTransactionOutput.model_validate(json.loads(raw))
             except Exception as exc:
                 msg = "Failed to parse expense from input"
                 raise ValueError(msg) from exc
@@ -112,11 +112,11 @@ class OpenAICompatibleProvider(LLMProvider):
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
         by_category_lines = "\n".join(
-            f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} expenses)"
+            f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} transactions)"
             for row in context.by_category
         )
         by_month_lines = "\n".join(
-            f"  - {row['period']}: {row['total']:.2f} ({row['count']} expenses)"
+            f"  - {row['period']}: {row['total']:.2f} ({row['count']} transactions)"
             for row in context.by_month
         )
         recent_lines = "\n".join(
@@ -126,10 +126,11 @@ class OpenAICompatibleProvider(LLMProvider):
         wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
 
         data_context = f"""\
-Expense data summary ({wallets_line}):
+Financial data summary ({wallets_line}):
 - Date range: {context.date_range}
-- Total expenses: {context.total_expenses}
-- Total amount spent: {context.total_amount:.2f} {context.currency}
+- Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
+- Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}
+- Net balance: {context.total_income - context.total_amount:.2f} {context.currency}
 
 Spending by category:
 {by_category_lines or "  (no data)"}
@@ -137,7 +138,7 @@ Spending by category:
 Spending by month:
 {by_month_lines or "  (no data)"}
 
-Recent expenses (up to 10):
+Recent transactions (up to 10):
 {recent_lines or "  (no data)"}
 
 User question: {message}"""

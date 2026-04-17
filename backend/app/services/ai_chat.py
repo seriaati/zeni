@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlmodel import col, select
 
 from app.models.category import Category
-from app.models.expense import Expense
+from app.models.transaction import Transaction
 from app.models.wallet import Wallet
 from app.providers import get_provider
 from app.providers.base import ChatContext
@@ -17,7 +17,7 @@ from app.providers.errors import (
     ProviderPermissionError,
     ProviderRateLimitError,
 )
-from app.services.ai_expense import _decrypt_key, get_ai_provider_record
+from app.services.ai_transaction import _decrypt_key, get_ai_provider_record
 
 if TYPE_CHECKING:
     import uuid
@@ -41,7 +41,7 @@ async def _load_wallets(
     return list(result.all())
 
 
-async def _load_category_map(expense_list: list[Expense], session: AsyncSession) -> dict:
+async def _load_category_map(expense_list: list[Transaction], session: AsyncSession) -> dict:
     cat_ids = {e.category_id for e in expense_list}
     cat_map: dict = {}
     for cat_id in cat_ids:
@@ -51,7 +51,7 @@ async def _load_category_map(expense_list: list[Expense], session: AsyncSession)
     return cat_map
 
 
-def _build_by_category(expenses: list[Expense], cat_map: dict) -> list[dict]:
+def _build_by_category(expenses: list[Transaction], cat_map: dict) -> list[dict]:
     raw: dict = {}
     for e in expenses:
         name = cat_map.get(e.category_id, "Unknown")
@@ -62,7 +62,7 @@ def _build_by_category(expenses: list[Expense], cat_map: dict) -> list[dict]:
     return sorted(raw.values(), key=operator.itemgetter("total"), reverse=True)[:_MAX_CATEGORIES]
 
 
-def _build_by_month(expenses: list[Expense]) -> list[dict]:
+def _build_by_month(expenses: list[Transaction]) -> list[dict]:
     raw: dict = {}
     for e in expenses:
         period = e.date.strftime("%Y-%m")
@@ -73,7 +73,7 @@ def _build_by_month(expenses: list[Expense]) -> list[dict]:
     return sorted(raw.values(), key=operator.itemgetter("period"), reverse=True)[:_MAX_MONTHS]
 
 
-def _build_recent(expenses: list[Expense], cat_map: dict) -> list[dict]:
+def _build_recent(expenses: list[Transaction], cat_map: dict) -> list[dict]:
     recent = sorted(expenses, key=operator.attrgetter("date"), reverse=True)[:_MAX_RECENT]
     return [
         {
@@ -87,7 +87,7 @@ def _build_recent(expenses: list[Expense], cat_map: dict) -> list[dict]:
 
 
 async def _build_context(
-    expenses: list[Expense], wallets: list[Wallet], session: AsyncSession
+    expenses: list[Transaction], wallets: list[Wallet], session: AsyncSession
 ) -> ChatContext:
     wallet_names = [w.name for w in wallets]
     currency = wallets[0].currency if len(wallets) == 1 else "mixed"
@@ -101,20 +101,26 @@ async def _build_context(
             by_category=[],
             by_month=[],
             recent_expenses=[],
+            total_income=0.0,
+            income_count=0,
             wallet_names=wallet_names,
         )
 
-    cat_map = await _load_category_map(expenses, session)
+    expense_txns = [e for e in expenses if e.type == "expense"]
+    income_txns = [e for e in expenses if e.type == "income"]
+    cat_map = await _load_category_map(expense_txns, session)
     dates = [e.date for e in expenses]
 
     return ChatContext(
-        total_expenses=len(expenses),
-        total_amount=sum(e.amount for e in expenses),
+        total_expenses=len(expense_txns),
+        total_amount=sum(e.amount for e in expense_txns),
         currency=currency,
         date_range=f"{min(dates).strftime('%Y-%m-%d')} to {max(dates).strftime('%Y-%m-%d')}",
-        by_category=_build_by_category(expenses, cat_map),
-        by_month=_build_by_month(expenses),
+        by_category=_build_by_category(expense_txns, cat_map),
+        by_month=_build_by_month(expense_txns),
         recent_expenses=_build_recent(expenses, cat_map),
+        total_income=sum(e.amount for e in income_txns),
+        income_count=len(income_txns),
         wallet_names=wallet_names,
     )
 
@@ -135,7 +141,7 @@ async def chat_about_expenses(
 
     wallet_ids = [w.id for w in wallets]
     expense_result = await session.exec(
-        select(Expense).where(col(Expense.wallet_id).in_(wallet_ids))
+        select(Transaction).where(col(Transaction.wallet_id).in_(wallet_ids))
     )
     expenses = list(expense_result.all())
 

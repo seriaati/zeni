@@ -15,7 +15,7 @@ from app.schemas.ai_provider import (
     AIProviderUpsert,
     AIProviderValidateResponse,
 )
-from app.services.ai_expense import (
+from app.services.ai_transaction import (
     _decrypt_key,
     _mask_key,
     get_ai_provider_record,

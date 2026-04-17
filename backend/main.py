@@ -15,15 +15,15 @@ from app.routers import (
     budgets,
     categories,
     chat,
-    expenses,
     export,
     recurring,
     tags,
     tokens,
+    transactions,
     users,
     wallets,
 )
-from app.services.recurring import process_due_recurring_expenses
+from app.services.recurring import process_due_recurring_transactions
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     async for session in get_session():
-        await process_due_recurring_expenses(session)
+        await process_due_recurring_transactions(session)
         break
     yield
 
@@ -52,7 +52,7 @@ app.include_router(users.router)
 app.include_router(wallets.router)
 app.include_router(categories.router)
 app.include_router(tags.router)
-app.include_router(expenses.router)
+app.include_router(transactions.router)
 app.include_router(ai_provider.router)
 app.include_router(chat.router)
 app.include_router(recurring.router)

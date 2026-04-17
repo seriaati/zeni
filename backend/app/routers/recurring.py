@@ -9,13 +9,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.category import Category
-from app.models.recurring import RecurringExpense
+from app.models.recurring import RecurringTransaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.recurring import (
-    RecurringExpenseCreate,
-    RecurringExpenseResponse,
-    RecurringExpenseUpdate,
+    RecurringTransactionCreate,
+    RecurringTransactionResponse,
+    RecurringTransactionUpdate,
 )
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/recurring", tags=["recurring"])
@@ -38,16 +38,16 @@ async def _get_wallet_or_404(
 
 async def _get_recurring_or_404(
     recurring_id: uuid.UUID, wallet_id: uuid.UUID, session: AsyncSession
-) -> RecurringExpense:
+) -> RecurringTransaction:
     result = await session.exec(
-        select(RecurringExpense).where(
-            RecurringExpense.id == recurring_id, RecurringExpense.wallet_id == wallet_id
+        select(RecurringTransaction).where(
+            RecurringTransaction.id == recurring_id, RecurringTransaction.wallet_id == wallet_id
         )
     )
     recurring = result.first()
     if not recurring:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Recurring expense not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Recurring transaction not found"
         )
     return recurring
 
@@ -62,11 +62,12 @@ async def _validate_category(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
 
-def _to_response(r: RecurringExpense) -> RecurringExpenseResponse:
-    return RecurringExpenseResponse(
+def _to_response(r: RecurringTransaction) -> RecurringTransactionResponse:
+    return RecurringTransactionResponse(
         id=r.id,
         wallet_id=r.wallet_id,
         category_id=r.category_id,
+        type=r.type,
         amount=r.amount,
         description=r.description,
         frequency=r.frequency,
@@ -78,14 +79,18 @@ def _to_response(r: RecurringExpense) -> RecurringExpenseResponse:
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_recurring(
-    wallet_id: uuid.UUID, body: RecurringExpenseCreate, current_user: CurrentUser, session: DbDep
-) -> RecurringExpenseResponse:
+    wallet_id: uuid.UUID,
+    body: RecurringTransactionCreate,
+    current_user: CurrentUser,
+    session: DbDep,
+) -> RecurringTransactionResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     await _validate_category(body.category_id, current_user.id, session)
 
-    recurring = RecurringExpense(
+    recurring = RecurringTransaction(
         wallet_id=wallet_id,
         category_id=body.category_id,
+        type=body.type,
         amount=body.amount,
         description=body.description,
         frequency=body.frequency,
@@ -100,10 +105,10 @@ async def create_recurring(
 @router.get("")
 async def list_recurring(
     wallet_id: uuid.UUID, current_user: CurrentUser, session: DbDep
-) -> list[RecurringExpenseResponse]:
+) -> list[RecurringTransactionResponse]:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     result = await session.exec(
-        select(RecurringExpense).where(RecurringExpense.wallet_id == wallet_id)
+        select(RecurringTransaction).where(RecurringTransaction.wallet_id == wallet_id)
     )
     return [_to_response(r) for r in result.all()]
 
@@ -112,16 +117,18 @@ async def list_recurring(
 async def update_recurring(
     wallet_id: uuid.UUID,
     recurring_id: uuid.UUID,
-    body: RecurringExpenseUpdate,
+    body: RecurringTransactionUpdate,
     current_user: CurrentUser,
     session: DbDep,
-) -> RecurringExpenseResponse:
+) -> RecurringTransactionResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     recurring = await _get_recurring_or_404(recurring_id, wallet_id, session)
 
     if body.category_id is not None:
         await _validate_category(body.category_id, current_user.id, session)
         recurring.category_id = body.category_id
+    if body.type is not None:
+        recurring.type = body.type
     if body.amount is not None:
         recurring.amount = body.amount
     if body.description is not None:
