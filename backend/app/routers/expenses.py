@@ -409,7 +409,7 @@ async def list_expenses(  # noqa: PLR0913, PLR0917
     start_date: Annotated[datetime | None, Query()] = None,
     end_date: Annotated[datetime | None, Query()] = None,
     category_id: Annotated[uuid.UUID | None, Query()] = None,
-    tag_id: Annotated[uuid.UUID | None, Query()] = None,
+    tag_ids: Annotated[list[uuid.UUID] | None, Query()] = None,
     min_amount: Annotated[float | None, Query()] = None,
     max_amount: Annotated[float | None, Query()] = None,
     search: Annotated[str | None, Query()] = None,
@@ -436,9 +436,11 @@ async def list_expenses(  # noqa: PLR0913, PLR0917
         query = query.where(col(Expense.amount) <= max_amount)
     if search:
         query = query.where(col(Expense.description).ilike(f"%{search}%"))
-    if tag_id:
-        query = query.join(ExpenseTag, col(Expense.id) == col(ExpenseTag.expense_id)).where(
-            col(ExpenseTag.tag_id) == tag_id
+    if tag_ids:
+        query = (
+            query.join(ExpenseTag, col(Expense.id) == col(ExpenseTag.expense_id))
+            .where(col(ExpenseTag.tag_id).in_(tag_ids))
+            .distinct()
         )
 
     count_result = await session.exec(select(func.count()).select_from(query.subquery()))
