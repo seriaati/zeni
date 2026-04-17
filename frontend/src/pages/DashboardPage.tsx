@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { BudgetResponse, CategoryResponse, ExpenseResponse, ExpenseSummary } from '../lib/types';
+import type { BudgetResponse, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
 import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
@@ -24,9 +24,9 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
-  const [summary, setSummary] = useState<ExpenseSummary | null>(null);
-  const [weekSummary, setWeekSummary] = useState<ExpenseSummary | null>(null);
-  const [recent, setRecent] = useState<ExpenseResponse[]>([]);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [weekSummary, setWeekSummary] = useState<TransactionSummary | null>(null);
+  const [recent, setRecent] = useState<TransactionResponse[]>([]);
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,14 +154,14 @@ export function DashboardPage() {
         <SummaryCard
           label="This month"
           value={loading ? null : fmt(summary?.total_amount ?? 0, activeWallet.currency)}
-          sub={`${summary?.expense_count ?? 0} expenses`}
+          sub={`${summary?.expense_count ?? 0} transactions`}
           accent="var(--forest)"
           loading={loading}
         />
         <SummaryCard
           label="This week"
           value={loading ? null : fmt(weekSummary?.total_amount ?? 0, activeWallet.currency)}
-          sub={`${weekSummary?.expense_count ?? 0} expenses`}
+          sub={`${weekSummary?.expense_count ?? 0} transactions`}
           accent="var(--amber)"
           loading={loading}
         />
@@ -242,7 +242,7 @@ export function DashboardPage() {
         {/* Recent expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Recent expenses</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Recent transactions</h2>
             <Link
               to={`/wallets/${activeWallet.id}`}
               style={{ fontSize: 13, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4 }}
@@ -259,8 +259,8 @@ export function DashboardPage() {
             </div>
           ) : recent.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
-              <p className="empty-state-title">No expenses yet</p>
-              <p className="empty-state-desc">Press ⌘K to add your first expense.</p>
+              <p className="empty-state-title">No transactions yet</p>
+              <p className="empty-state-desc">Press ⌘K to add your first transaction.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -307,8 +307,8 @@ export function DashboardPage() {
                       <span>{fmtRelative(expense.date)}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
-                    {fmt(expense.amount, activeWallet.currency)}
+                  <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
+                    {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, activeWallet.currency)}
                   </div>
                 </Link>
               ))}

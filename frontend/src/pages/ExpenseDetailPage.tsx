@@ -7,7 +7,7 @@ import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
-import type { CategoryResponse, ExpenseResponse, TagResponse } from '../lib/types';
+import type { CategoryResponse, TransactionResponse, TagResponse } from '../lib/types';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 
@@ -323,7 +323,7 @@ export function ExpenseDetailPage() {
   const toast = useToast();
   const [currency, setCurrency] = useState('USD');
 
-  const [expense, setExpense] = useState<ExpenseResponse | null>(null);
+  const [expense, setExpense] = useState<TransactionResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -376,7 +376,7 @@ export function ExpenseDetailPage() {
       });
       setExpense(updated);
       setEditing(false);
-      toast('Expense updated', 'success');
+      toast('Transaction updated', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to save', 'error');
     } finally {
@@ -390,7 +390,7 @@ export function ExpenseDetailPage() {
     setDeleting(true);
     try {
       await expensesApi.delete(walletId, expenseId);
-      toast('Expense deleted', 'success');
+      toast('Transaction deleted', 'success');
       navigate(`/wallets/${walletId}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to delete', 'error');
@@ -424,7 +424,7 @@ export function ExpenseDetailPage() {
     );
   }
 
-  if (!expense) return <p style={{ color: 'var(--ink-light)' }}>Expense not found.</p>;
+  if (!expense) return <p style={{ color: 'var(--ink-light)' }}>Transaction not found.</p>;
 
   const categoryOptions = categories.map((c) => ({ value: c.id, label: c.name }));
 
@@ -439,7 +439,7 @@ export function ExpenseDetailPage() {
       </button>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 className="page-title">Expense detail</h1>
+        <h1 className="page-title">Transaction detail</h1>
         <div style={{ display: 'flex', gap: 6 }}>
           {!editing ? (
             <>
@@ -468,7 +468,7 @@ export function ExpenseDetailPage() {
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Delete expense"
+        title="Delete transaction"
         size="sm"
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -483,8 +483,8 @@ export function ExpenseDetailPage() {
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)', margin: 0 }}>
           {expense.children && expense.children.length > 0
-            ? <>This is a group expense with <strong>{expense.children.length} sub-expense{expense.children.length !== 1 ? 's' : ''}</strong>. Deleting it will also delete all sub-expenses. This action cannot be undone.</>
-            : 'Are you sure you want to delete this expense? This action cannot be undone.'
+            ? <>This is a group transaction with <strong>{expense.children.length} sub-transaction{expense.children.length !== 1 ? 's' : ''}</strong>. Deleting it will also delete all sub-transactions. This action cannot be undone.</>
+            : 'Are you sure you want to delete this transaction? This action cannot be undone.'
           }
         </p>
       </Modal>
@@ -617,7 +617,7 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Layers size={13} style={{ color: 'var(--ink-faint)' }} />
-              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Sub-expenses</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Sub-transactions</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {expense.children.map((child, i) => (

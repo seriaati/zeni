@@ -437,6 +437,7 @@ function GroupReview({
         date: parent.date,
         ai_context: null,
         suggested_tags: [],
+        type: 'expense',
       }),
     ]);
   };
@@ -581,7 +582,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { activeWallet, wallets, setActiveWallet } = useWallet();
+  const { activeWallet } = useWallet();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -668,12 +669,13 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
       await expensesApi.create(activeWallet.id, {
         category_name: exp.category_name ?? 'Others',
         amount: exp.amount ?? 0,
+        type: exp.type ?? 'expense',
         description: exp.description ?? undefined,
         date: exp.date ?? undefined,
         tag_names: exp.suggested_tags.map((t) => t.name),
         ai_context: exp.ai_context ?? undefined,
       });
-      toast('Expense saved!', 'success');
+      toast('Transaction saved!', 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -692,13 +694,14 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         expensesApi.create(activeWallet.id, {
           category_name: exp.category_name ?? 'Others',
           amount: exp.amount ?? 0,
+          type: exp.type ?? 'expense',
           description: exp.description ?? undefined,
           date: exp.date ?? undefined,
           tag_names: exp.suggested_tags.map((t) => t.name),
           ai_context: exp.ai_context ?? undefined,
         }),
       ));
-      toast(`${committed.length} expenses saved!`, 'success');
+      toast(`${committed.length} transactions saved!`, 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -738,7 +741,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           tag_ids: [],
         })),
       });
-      toast('Group expense saved!', 'success');
+      toast('Group transaction saved!', 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -929,7 +932,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             placeholder={
               mode === 'processing' ? 'Processing…' :
                 mode === 'review' ? 'Edit text and press Enter to re-parse…' :
-                  'Type an expense or navigate… (e.g. "coffee 4.50")'
+                  'Type a transaction or navigate… (e.g. "coffee 4.50" or "salary 5000")'
             }
             disabled={mode === 'processing'}
             style={{
@@ -1057,7 +1060,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
                 }}
               >
                 <Zap size={16} />
-                <span>Parse "{text}" as expense</span>
+                <span>Parse "{text}" as transaction</span>
                 <ArrowRight size={14} style={{ marginLeft: 'auto' }} />
               </button>
             ) : (
@@ -1117,7 +1120,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   >
                     <Zap size={15} style={{ flexShrink: 0 }} />
-                    Add as expense
+                    Add as transaction
                   </button>
                 )}
               </>

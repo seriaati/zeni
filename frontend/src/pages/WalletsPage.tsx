@@ -126,7 +126,7 @@ export function WalletsPage() {
                 style={{ flex: 1, justifyContent: 'center' }}
                 onClick={() => setActiveWallet(w)}
               >
-                View expenses <ArrowRight size={13} />
+                View transactions <ArrowRight size={13} />
               </Link>
             </div>
           </div>
@@ -193,7 +193,7 @@ export function WalletsPage() {
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Are you sure you want to delete <strong>{deleteWallet?.name}</strong>? This will also delete all expenses in this wallet.
+          Are you sure you want to delete <strong>{deleteWallet?.name}</strong>? This will also delete all transactions in this wallet.
         </p>
       </Modal>
     </div>

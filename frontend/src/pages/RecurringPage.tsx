@@ -6,18 +6,18 @@ import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { CategoryResponse, RecurringExpenseResponse } from '../lib/types';
+import type { CategoryResponse, RecurringTransactionResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 
 export function RecurringPage() {
   const { activeWallet } = useWallet();
   const toast = useToast();
-  const [items, setItems] = useState<RecurringExpenseResponse[]>([]);
+  const [items, setItems] = useState<RecurringTransactionResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [editItem, setEditItem] = useState<RecurringExpenseResponse | null>(null);
-  const [deleteItem, setDeleteItem] = useState<RecurringExpenseResponse | null>(null);
+  const [editItem, setEditItem] = useState<RecurringTransactionResponse | null>(null);
+  const [deleteItem, setDeleteItem] = useState<RecurringTransactionResponse | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -49,7 +49,7 @@ export function RecurringPage() {
     setShowCreate(true);
   };
 
-  const openEdit = (r: RecurringExpenseResponse) => {
+  const openEdit = (r: RecurringTransactionResponse) => {
     setForm({
       category_id: r.category_id,
       amount: String(r.amount),
@@ -88,7 +88,7 @@ export function RecurringPage() {
     }
   };
 
-  const handleToggle = async (r: RecurringExpenseResponse) => {
+  const handleToggle = async (r: RecurringTransactionResponse) => {
     if (!activeWallet) return;
     try {
       await recurringApi.update(activeWallet.id, r.id, { is_active: !r.is_active });
@@ -156,7 +156,7 @@ export function RecurringPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Recurring</h1>
-          <p className="page-subtitle">Subscriptions and repeating expenses</p>
+          <p className="page-subtitle">Subscriptions and repeating transactions</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate} disabled={!activeWallet}>
@@ -166,7 +166,7 @@ export function RecurringPage() {
       </div>
 
       {!activeWallet ? (
-        <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>Select a wallet to manage recurring expenses.</p>
+        <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>Select a wallet to manage recurring transactions.</p>
       ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />)}
@@ -174,8 +174,8 @@ export function RecurringPage() {
       ) : items.length === 0 ? (
         <div className="empty-state">
           <RefreshCw size={48} className="empty-state-icon" />
-          <p className="empty-state-title">No recurring expenses</p>
-          <p className="empty-state-desc">Add subscriptions, rent, or any repeating expense to track them automatically.</p>
+          <p className="empty-state-title">No recurring transactions</p>
+          <p className="empty-state-desc">Add subscriptions, rent, salary, or any repeating transaction to track them automatically.</p>
           <button className="btn btn-primary btn-md" onClick={openCreate} style={{ marginTop: 8 }}>
             <Plus size={16} /> Add recurring
           </button>
@@ -241,7 +241,7 @@ export function RecurringPage() {
       <Modal
         open={showCreate || !!editItem}
         onClose={() => { setShowCreate(false); setEditItem(null); }}
-        title={editItem ? 'Edit recurring' : 'New recurring expense'}
+        title={editItem ? 'Edit recurring' : 'New recurring transaction'}
         footer={
           <>
             <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditItem(null); }}>Cancel</button>
@@ -258,7 +258,7 @@ export function RecurringPage() {
       <Modal
         open={!!deleteItem}
         onClose={() => setDeleteItem(null)}
-        title="Delete recurring expense"
+        title="Delete recurring transaction"
         footer={
           <>
             <button className="btn btn-secondary btn-md" onClick={() => setDeleteItem(null)}>Cancel</button>
@@ -269,7 +269,7 @@ export function RecurringPage() {
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Delete <strong>{deleteItem?.description ?? 'this recurring expense'}</strong>? Future expenses won't be created automatically.
+          Delete <strong>{deleteItem?.description ?? 'this recurring transaction'}</strong>? Future transactions won't be created automatically.
         </p>
       </Modal>
     </div>
