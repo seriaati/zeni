@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import select
 
-from app.models.expense import Expense
-from app.models.recurring import RecurringExpense
+from app.models.recurring import RecurringTransaction
+from app.models.transaction import Transaction
 
 if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
@@ -40,23 +40,26 @@ def _days_in_month(year: int, month: int) -> int:
     return (datetime(year, month + 1, 1, tzinfo=UTC) - timedelta(days=1)).day
 
 
-async def process_due_recurring_expenses(session: AsyncSession) -> int:
+async def process_due_recurring_transactions(session: AsyncSession) -> int:
     now = datetime.now(UTC)
     result = await session.exec(
-        select(RecurringExpense).where(RecurringExpense.is_active, RecurringExpense.next_due <= now)
+        select(RecurringTransaction).where(
+            RecurringTransaction.is_active, RecurringTransaction.next_due <= now
+        )
     )
     due = result.all()
 
     created = 0
     for recurring in due:
-        expense = Expense(
+        transaction = Transaction(
             wallet_id=recurring.wallet_id,
             category_id=recurring.category_id,
+            type=recurring.type,
             amount=recurring.amount,
             description=recurring.description,
             date=recurring.next_due,
         )
-        session.add(expense)
+        session.add(transaction)
 
         next_due = _compute_next_due(recurring.next_due, recurring.frequency)
         recurring.next_due = next_due

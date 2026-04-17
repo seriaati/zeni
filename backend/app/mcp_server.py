@@ -12,7 +12,7 @@ from sqlmodel import col, select
 from app.database import get_session
 from app.models.api_token import APIToken
 from app.models.category import Category
-from app.models.expense import Expense
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.services.auth import hash_api_token
@@ -20,8 +20,8 @@ from app.services.auth import hash_api_token
 mcp = FastMCP(
     name="Zeni",
     instructions=(
-        "Zeni is a personal expense tracker. "
-        "Use these tools to create and query expense records on behalf of the authenticated user. "
+        "Zeni is a personal finance tracker. "
+        "Use these tools to create and query transaction records on behalf of the authenticated user. "
         "All tools require a valid API token passed as the `token` argument."
     ),
 )
@@ -102,13 +102,14 @@ async def list_categories(token: str) -> list[dict[str, Any]]:
 
 
 @dataclass
-class ListExpensesInput:
+class ListTransactionsInput:
     token: str
     wallet_id: str
     limit: int = 20
     start_date: str | None = None
     end_date: str | None = None
     category_id: str | None = None
+    type: str | None = None
 
 
 def _apply_date_filters(
@@ -118,17 +119,17 @@ def _apply_date_filters(
         dt = _parse_dt(start_date, "start_date")
         if isinstance(dt, str):
             return query, dt
-        query = query.where(col(Expense.date) >= dt)
+        query = query.where(col(Transaction.date) >= dt)
     if end_date:
         dt = _parse_dt(end_date, "end_date")
         if isinstance(dt, str):
             return query, dt
-        query = query.where(col(Expense.date) <= dt)
+        query = query.where(col(Transaction.date) <= dt)
     return query, None
 
 
-async def _fetch_expenses(
-    params: ListExpensesInput, user_id: uuid.UUID
+async def _fetch_transactions(
+    params: ListTransactionsInput, user_id: uuid.UUID
 ) -> list[dict[str, Any]] | str:
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
     if isinstance(w_id, str):
@@ -143,7 +144,9 @@ async def _fetch_expenses(
         if not wallet_result.first():
             return "Wallet not found"
 
-        query = select(Expense).where(Expense.wallet_id == w_id, col(Expense.group_id).is_(None))
+        query = select(Transaction).where(
+            Transaction.wallet_id == w_id, col(Transaction.group_id).is_(None)
+        )
         query, err = _apply_date_filters(query, params.start_date, params.end_date)
         if err:
             return err
@@ -152,26 +155,30 @@ async def _fetch_expenses(
             c_id = _parse_uuid(params.category_id, "category_id")
             if isinstance(c_id, str):
                 return c_id
-            query = query.where(Expense.category_id == c_id)
+            query = query.where(Transaction.category_id == c_id)
 
-        query = query.order_by(col(Expense.date).desc()).limit(limit)
+        if params.type:
+            query = query.where(Transaction.type == params.type)
+
+        query = query.order_by(col(Transaction.date).desc()).limit(limit)
         result = await session.exec(query)
-        expenses = result.all()
+        transactions = result.all()
 
         rows = []
-        for e in expenses:
-            cat_result = await session.exec(select(Category).where(Category.id == e.category_id))
+        for t in transactions:
+            cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
             cat = cat_result.first()
             rows.append(
                 {
-                    "id": str(e.id),
-                    "wallet_id": str(e.wallet_id),
-                    "amount": e.amount,
-                    "description": e.description,
-                    "date": e.date.isoformat(),
+                    "id": str(t.id),
+                    "wallet_id": str(t.wallet_id),
+                    "type": t.type,
+                    "amount": t.amount,
+                    "description": t.description,
+                    "date": t.date.isoformat(),
                     "category": cat.name if cat else "Unknown",
-                    "category_id": str(e.category_id),
-                    "created_at": e.created_at.isoformat(),
+                    "category_id": str(t.category_id),
+                    "created_at": t.created_at.isoformat(),
                 }
             )
         return rows
@@ -179,9 +186,9 @@ async def _fetch_expenses(
 
 
 @mcp.tool()
-async def list_expenses(params: ListExpensesInput) -> list[dict[str, Any]]:
+async def list_transactions(params: ListTransactionsInput) -> list[dict[str, Any]]:
     """
-    List expenses for a wallet with optional filters.
+    List transactions for a wallet with optional filters.
 
     Args:
         params.token: API token for authentication.
@@ -190,11 +197,12 @@ async def list_expenses(params: ListExpensesInput) -> list[dict[str, Any]]:
         params.start_date: ISO 8601 start date filter (e.g. "2024-01-01").
         params.end_date: ISO 8601 end date filter (e.g. "2024-01-31").
         params.category_id: UUID of category to filter by.
+        params.type: Filter by type: "expense" or "income".
     """
     user = await _resolve_user(params.token)
     if not user:
         return [{"error": "Invalid or expired token"}]
-    result = await _fetch_expenses(params, user.id)
+    result = await _fetch_transactions(params, user.id)
     if isinstance(result, str):
         return [{"error": result}]
     return result
@@ -220,21 +228,25 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
         if not wallet_result.first():
             return "Wallet not found"
 
-        query = select(Expense).where(Expense.wallet_id == w_id, col(Expense.group_id).is_(None))
+        query = select(Transaction).where(
+            Transaction.wallet_id == w_id, col(Transaction.group_id).is_(None)
+        )
         query, err = _apply_date_filters(query, params.start_date, params.end_date)
         if err:
             return err
 
         result = await session.exec(query)
-        expenses = result.all()
+        transactions = result.all()
 
-        total = sum(e.amount for e in expenses)
+        expenses = [t for t in transactions if t.type == "expense"]
+        income = [t for t in transactions if t.type == "income"]
+
         by_category: dict[str, dict[str, Any]] = {}
-        for e in expenses:
-            cid = str(e.category_id)
+        for t in expenses:
+            cid = str(t.category_id)
             if cid not in by_category:
                 cat_result = await session.exec(
-                    select(Category).where(Category.id == e.category_id)
+                    select(Category).where(Category.id == t.category_id)
                 )
                 cat = cat_result.first()
                 by_category[cid] = {
@@ -243,13 +255,19 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
                     "total": 0.0,
                     "count": 0,
                 }
-            by_category[cid]["total"] += e.amount
+            by_category[cid]["total"] += t.amount
             by_category[cid]["count"] += 1
+
+        total_expenses = sum(t.amount for t in expenses)
+        total_income = sum(t.amount for t in income)
 
         return {
             "wallet_id": params.wallet_id,
-            "total_amount": total,
+            "total_expenses": total_expenses,
             "expense_count": len(expenses),
+            "total_income": total_income,
+            "income_count": len(income),
+            "balance": total_income - total_expenses,
             "by_category": sorted(
                 by_category.values(), key=operator.itemgetter("total"), reverse=True
             ),
@@ -260,9 +278,9 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
 @mcp.tool()
 async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
     """
-    Get a spending summary for a wallet.
+    Get a financial summary for a wallet.
 
-    Returns total amount, expense count, and breakdown by category.
+    Returns total expenses, total income, balance, and breakdown by category.
 
     Args:
         params.token: API token for authentication.
@@ -280,17 +298,18 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
 
 
 @dataclass
-class CreateExpenseInput:
+class CreateTransactionInput:
     token: str
     wallet_id: str
     category_id: str
     amount: float
+    type: str = "expense"
     description: str | None = None
     date: str | None = None
 
 
-def _parse_create_expense_input(
-    params: CreateExpenseInput,
+def _parse_create_transaction_input(
+    params: CreateTransactionInput,
 ) -> tuple[uuid.UUID, uuid.UUID, datetime] | str:
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
     if isinstance(w_id, str):
@@ -298,20 +317,22 @@ def _parse_create_expense_input(
     c_id = _parse_uuid(params.category_id, "category_id")
     if isinstance(c_id, str):
         return c_id
-    expense_date: datetime = datetime.now(UTC)
+    transaction_date: datetime = datetime.now(UTC)
     if params.date:
         parsed = _parse_dt(params.date, "date")
         if isinstance(parsed, str):
             return parsed
-        expense_date = parsed
-    return w_id, c_id, expense_date
+        transaction_date = parsed
+    return w_id, c_id, transaction_date
 
 
-async def _insert_expense(params: CreateExpenseInput, user_id: uuid.UUID) -> dict[str, Any] | str:
-    parsed = _parse_create_expense_input(params)
+async def _insert_transaction(
+    params: CreateTransactionInput, user_id: uuid.UUID
+) -> dict[str, Any] | str:
+    parsed = _parse_create_transaction_input(params)
     if isinstance(parsed, str):
         return parsed
-    w_id, c_id, expense_date = parsed
+    w_id, c_id, transaction_date = parsed
 
     async for session in get_session():
         wallet_result = await session.exec(
@@ -327,41 +348,44 @@ async def _insert_expense(params: CreateExpenseInput, user_id: uuid.UUID) -> dic
         if not cat:
             return "Category not found"
 
-        expense = Expense(
+        transaction = Transaction(
             wallet_id=w_id,
             category_id=c_id,
+            type=params.type,
             amount=params.amount,
             description=params.description,
-            date=expense_date,
+            date=transaction_date,
         )
-        session.add(expense)
+        session.add(transaction)
         await session.commit()
-        await session.refresh(expense)
+        await session.refresh(transaction)
 
         return {
-            "id": str(expense.id),
-            "wallet_id": str(expense.wallet_id),
+            "id": str(transaction.id),
+            "wallet_id": str(transaction.wallet_id),
+            "type": transaction.type,
             "category": cat.name,
-            "category_id": str(expense.category_id),
-            "amount": expense.amount,
-            "description": expense.description,
-            "date": expense.date.isoformat(),
-            "created_at": expense.created_at.isoformat(),
+            "category_id": str(transaction.category_id),
+            "amount": transaction.amount,
+            "description": transaction.description,
+            "date": transaction.date.isoformat(),
+            "created_at": transaction.created_at.isoformat(),
         }
     return "Database error"
 
 
 @mcp.tool()
-async def create_expense(params: CreateExpenseInput) -> dict[str, Any]:
+async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
     """
-    Create a new expense record.
+    Create a new transaction record (expense or income).
 
     Args:
         params.token: API token for authentication.
-        params.wallet_id: UUID of the wallet to add the expense to.
-        params.category_id: UUID of the category for this expense.
-        params.amount: Expense amount (must be positive).
-        params.description: Optional description of the expense.
+        params.wallet_id: UUID of the wallet to add the transaction to.
+        params.category_id: UUID of the category for this transaction.
+        params.amount: Transaction amount (must be positive).
+        params.type: Transaction type: "expense" (default) or "income".
+        params.description: Optional description of the transaction.
         params.date: ISO 8601 date string (defaults to now if omitted).
     """
     user = await _resolve_user(params.token)
@@ -369,7 +393,9 @@ async def create_expense(params: CreateExpenseInput) -> dict[str, Any]:
         return {"error": "Invalid or expired token"}
     if params.amount <= 0:
         return {"error": "Amount must be positive"}
-    result = await _insert_expense(params, user.id)
+    if params.type not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+    result = await _insert_transaction(params, user.id)
     if isinstance(result, str):
         return {"error": result}
     return result

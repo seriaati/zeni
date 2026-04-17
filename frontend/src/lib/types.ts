@@ -23,6 +23,9 @@ export interface WalletResponse {
 export interface WalletSummary extends WalletResponse {
   total_expenses: number;
   expense_count: number;
+  total_income: number;
+  income_count: number;
+  balance: number;
 }
 
 export interface CategoryResponse {
@@ -57,34 +60,41 @@ export interface TagBrief {
   color: string | null;
 }
 
-export interface ExpenseResponse {
+export interface TransactionResponse {
   id: string;
   wallet_id: string;
   category: CategoryBrief;
   amount: number;
+  type: 'expense' | 'income';
   description: string | null;
   date: string;
   ai_context: string | null;
   tags: TagBrief[];
   group_id: string | null;
-  children: ExpenseResponse[] | null;
+  children: TransactionResponse[] | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface ExpenseListResponse {
-  items: ExpenseResponse[];
+export type ExpenseResponse = TransactionResponse;
+
+export interface TransactionListResponse {
+  items: TransactionResponse[];
   total: number;
   page: number;
   page_size: number;
 }
 
-export interface ExpenseSummary {
+export type ExpenseListResponse = TransactionListResponse;
+
+export interface TransactionSummary {
   total_amount: number;
   expense_count: number;
   by_category: { category_id: string; category_name: string; category_color: string | null; total: number; count: number }[];
   by_period: { period: string; total: number; count: number }[];
 }
+
+export type ExpenseSummary = TransactionSummary;
 
 export interface SuggestedTag {
   name: string;
@@ -100,19 +110,34 @@ export interface AIExpenseResponse {
   date: string | null;
   ai_context: string | null;
   suggested_tags: SuggestedTag[];
+  type: 'expense' | 'income';
+}
+
+export interface AIRecurringResponse {
+  amount: number;
+  currency: string;
+  category_name: string;
+  is_new_category: boolean;
+  description: string;
+  frequency: string;
+  next_due: string;
+  ai_context: string;
+  type: 'expense' | 'income';
+  suggested_tags: SuggestedTag[];
 }
 
 export interface AIParseResponse {
-  result_type: 'single' | 'multiple' | 'group';
+  result_type: 'single' | 'multiple' | 'group' | 'recurring';
   expenses: AIExpenseResponse[];
   group: AIExpenseResponse | null;
+  recurring: AIRecurringResponse | null;
 }
 
 export interface VoiceParseResponse extends AIParseResponse {
   transcript: string;
 }
 
-export interface GroupExpenseItemRequest {
+export interface GroupTransactionItemRequest {
   category_name?: string;
   category_id?: string;
   amount: number;
@@ -121,7 +146,9 @@ export interface GroupExpenseItemRequest {
   tag_ids?: string[];
 }
 
-export interface GroupExpenseRequest {
+export type GroupExpenseItemRequest = GroupTransactionItemRequest;
+
+export interface GroupTransactionRequest {
   group: {
     category_name?: string;
     category_id?: string;
@@ -131,8 +158,10 @@ export interface GroupExpenseRequest {
     tag_names?: string[];
     tag_ids?: string[];
   };
-  items: GroupExpenseItemRequest[];
+  items: GroupTransactionItemRequest[];
 }
+
+export type GroupExpenseRequest = GroupTransactionRequest;
 
 export interface BudgetResponse {
   id: string;
@@ -149,17 +178,20 @@ export interface BudgetResponse {
   is_over_budget: boolean;
 }
 
-export interface RecurringExpenseResponse {
+export interface RecurringTransactionResponse {
   id: string;
   wallet_id: string;
   category_id: string;
   amount: number;
+  type: 'expense' | 'income';
   description: string | null;
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
   next_due: string;
   is_active: boolean;
   created_at: string;
 }
+
+export type RecurringExpenseResponse = RecurringTransactionResponse;
 
 export interface APITokenResponse {
   id: string;

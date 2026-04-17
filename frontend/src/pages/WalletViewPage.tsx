@@ -5,7 +5,7 @@ import { expenses as expensesApi, categories as categoriesApi, wallets as wallet
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, TagResponse, WalletSummary } from '../lib/types';
+import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 
@@ -14,7 +14,7 @@ export function WalletViewPage() {
   const toast = useToast();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
-  const [data, setData] = useState<ExpenseListResponse | null>(null);
+  const [data, setData] = useState<TransactionListResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +100,7 @@ export function WalletViewPage() {
         <div>
           <h1 className="page-title">{wallet?.name ?? 'Wallet'}</h1>
           <p className="page-subtitle">
-            {wallet ? `${fmt(wallet.total_expenses, wallet.currency)} total · ${wallet.expense_count} expenses` : ''}
+            {wallet ? `${fmt(wallet.balance, wallet.currency)} balance · ${fmt(wallet.total_income, wallet.currency)} income · ${fmt(wallet.total_expenses, wallet.currency)} expenses` : ''}
           </p>
         </div>
         <div className="page-actions">
@@ -120,7 +120,7 @@ export function WalletViewPage() {
           <input
             className="input"
             style={{ paddingLeft: 32 }}
-            placeholder="Search expenses…"
+            placeholder="Search transactions…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
@@ -208,9 +208,9 @@ export function WalletViewPage() {
                         fontSize: 12,
                         fontWeight: 500,
                         cursor: 'pointer',
-                        border: `1.5px solid ${tag.color ?? 'var(--cream-darker)'}`,
-                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}18` : 'var(--cream-dark)'),
-                        color: active ? 'white' : (tag.color ?? 'var(--ink-mid)'),
+                        border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : 'var(--cream-darker)'}`,
+                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}14` : 'var(--cream-dark)'),
+                        color: active ? 'white' : 'var(--ink-mid)',
                         transition: 'all 0.15s',
                       }}
                     >
@@ -244,9 +244,9 @@ export function WalletViewPage() {
         </div>
       ) : !data || data.items.length === 0 ? (
         <div className="empty-state">
-          <p className="empty-state-title">No expenses found</p>
+          <p className="empty-state-title">No transactions found</p>
           <p className="empty-state-desc">
-            {hasFilters ? 'Try adjusting your filters.' : 'Press ⌘K to add your first expense.'}
+            {hasFilters ? 'Try adjusting your filters.' : 'Press ⌘K to add your first transaction.'}
           </p>
         </div>
       ) : (
@@ -287,7 +287,7 @@ export function WalletViewPage() {
           )}
 
           <p style={{ fontSize: 12, color: 'var(--ink-faint)', textAlign: 'center', marginTop: 12 }}>
-            Showing {data.items.length} of {data.total} expenses
+            Showing {data.items.length} of {data.total} transactions
           </p>
         </>
       )}
@@ -301,7 +301,7 @@ function ExpenseRow({
   walletId,
   isLast,
 }: {
-  expense: ExpenseResponse;
+  expense: TransactionResponse;
   currency: string;
   walletId: string;
   isLast: boolean;
@@ -357,8 +357,8 @@ function ExpenseRow({
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
-          {fmt(expense.amount, currency)}
+        <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : 'var(--ink)' }}>
+          {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, currency)}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
           {fmtRelative(expense.date)}

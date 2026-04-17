@@ -28,3 +28,6 @@ class WalletResponse(BaseModel):
 class WalletSummary(WalletResponse):
     total_expenses: float
     expense_count: int
+    total_income: float
+    income_count: int
+    balance: float

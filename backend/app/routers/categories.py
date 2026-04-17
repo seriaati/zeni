@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.category import Category
-from app.models.expense import Expense
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 
@@ -121,10 +121,10 @@ async def delete_category(
 
     others = await _get_others_category(current_user.id, session)
 
-    result = await session.exec(select(Expense).where(Expense.category_id == category_id))
-    for expense in result.all():
-        expense.category_id = others.id
-        session.add(expense)
+    result = await session.exec(select(Transaction).where(Transaction.category_id == category_id))
+    for transaction in result.all():
+        transaction.category_id = others.id
+        session.add(transaction)
 
     await session.delete(cat)
     await session.commit()

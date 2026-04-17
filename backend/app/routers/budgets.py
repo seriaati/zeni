@@ -11,7 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.dependencies import get_current_user, get_db
 from app.models.budget import Budget
 from app.models.category import Category
-from app.models.expense import Expense
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate
@@ -62,19 +62,21 @@ def _period_start(period: str) -> datetime:
 async def _compute_spent(budget: Budget, session: AsyncSession) -> float:
     period_start = _period_start(budget.period)
 
-    query = select(Expense).where(col(Expense.date) >= period_start)
+    query = select(Transaction).where(
+        col(Transaction.date) >= period_start, Transaction.type == "expense"
+    )
 
     if budget.wallet_id is not None:
-        query = query.where(Expense.wallet_id == budget.wallet_id)
+        query = query.where(Transaction.wallet_id == budget.wallet_id)
     else:
         wallets_result = await session.exec(select(Wallet).where(Wallet.user_id == budget.user_id))
         wallet_ids = [w.id for w in wallets_result.all()]
         if not wallet_ids:
             return 0.0
-        query = query.where(col(Expense.wallet_id).in_(wallet_ids))
+        query = query.where(col(Transaction.wallet_id).in_(wallet_ids))
 
     if budget.category_id is not None:
-        query = query.where(Expense.category_id == budget.category_id)
+        query = query.where(Transaction.category_id == budget.category_id)
 
     result = await session.exec(query)
     return sum(e.amount for e in result.all())

@@ -1,22 +1,35 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 FrequencyType = Literal["daily", "weekly", "bi-weekly", "monthly", "yearly"]
 
 
-class RecurringExpenseCreate(BaseModel):
-    category_id: uuid.UUID
+class RecurringTransactionCreate(BaseModel):
+    category_id: uuid.UUID | None = None
+    category_name: str | None = None
+    type: Literal["expense", "income"] = "expense"
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=500)
     frequency: FrequencyType
     next_due: datetime
+    tag_names: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_category(self) -> RecurringTransactionCreate:
+        if self.category_id is None and self.category_name is None:
+            msg = "Either category_id or category_name must be provided"
+            raise ValueError(msg)
+        return self
 
 
-class RecurringExpenseUpdate(BaseModel):
+class RecurringTransactionUpdate(BaseModel):
     category_id: uuid.UUID | None = None
+    type: Literal["expense", "income"] | None = None
     amount: float | None = Field(default=None, gt=0)
     description: str | None = Field(default=None, max_length=500)
     frequency: FrequencyType | None = None
@@ -24,10 +37,11 @@ class RecurringExpenseUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class RecurringExpenseResponse(BaseModel):
+class RecurringTransactionResponse(BaseModel):
     id: uuid.UUID
     wallet_id: uuid.UUID
     category_id: uuid.UUID
+    type: str
     amount: float
     description: str | None
     frequency: str

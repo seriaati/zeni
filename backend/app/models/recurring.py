@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -5,8 +7,8 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, text
 
 
-class RecurringExpense(SQLModel, table=True):
-    __tablename__: str = "recurring_expenses"
+class RecurringTransaction(SQLModel, table=True):
+    __tablename__: str = "recurring_transactions"
 
     id: uuid.UUID = Field(
         default=None,
@@ -15,6 +17,7 @@ class RecurringExpense(SQLModel, table=True):
     )
     wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True, ondelete="CASCADE")
     category_id: uuid.UUID = Field(foreign_key="categories.id")
+    type: str = Field(default="expense", max_length=10)
     amount: float
     description: str | None = Field(default=None, max_length=500)
     frequency: str = Field(max_length=20)

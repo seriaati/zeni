@@ -13,7 +13,7 @@ from app.providers.base import (
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
-    ParsedExpenseOutput,
+    ParsedTransactionOutput,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -54,7 +54,7 @@ class GeminiProvider(LLMProvider):
         self._client = genai.Client(api_key=api_key)
         self._model = model
 
-    async def parse_expenses(
+    async def parse_transactions(
         self,
         *,
         text: str | None,
@@ -62,7 +62,7 @@ class GeminiProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
-    ) -> ParsedExpenseOutput:
+    ) -> ParsedTransactionOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
@@ -88,11 +88,11 @@ class GeminiProvider(LLMProvider):
         if text:
             prompt_text += f"User input: {text}"
         else:
-            prompt_text += "Please extract the expense from the image above."
+            prompt_text += "Please extract the transaction from the image above."
 
         parts.append(genai_types.Part.from_text(text=prompt_text))
 
-        schema = ParsedExpenseOutput.model_json_schema()
+        schema = ParsedTransactionOutput.model_json_schema()
 
         try:
             response = await self._client.aio.models.generate_content(
@@ -112,15 +112,15 @@ class GeminiProvider(LLMProvider):
             msg = "Failed to parse expense from input"
             raise ValueError(msg)
 
-        return ParsedExpenseOutput.model_validate(json.loads(raw_text))
+        return ParsedTransactionOutput.model_validate(json.loads(raw_text))
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
         by_category_lines = "\n".join(
-            f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} expenses)"
+            f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} transactions)"
             for row in context.by_category
         )
         by_month_lines = "\n".join(
-            f"  - {row['period']}: {row['total']:.2f} ({row['count']} expenses)"
+            f"  - {row['period']}: {row['total']:.2f} ({row['count']} transactions)"
             for row in context.by_month
         )
         recent_lines = "\n".join(
@@ -130,10 +130,11 @@ class GeminiProvider(LLMProvider):
         wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
 
         data_context = f"""\
-Expense data summary ({wallets_line}):
+Financial data summary ({wallets_line}):
 - Date range: {context.date_range}
-- Total expenses: {context.total_expenses}
-- Total amount spent: {context.total_amount:.2f} {context.currency}
+- Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
+- Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}
+- Net balance: {context.total_income - context.total_amount:.2f} {context.currency}
 
 Spending by category:
 {by_category_lines or "  (no data)"}
@@ -141,7 +142,7 @@ Spending by category:
 Spending by month:
 {by_month_lines or "  (no data)"}
 
-Recent expenses (up to 10):
+Recent transactions (up to 10):
 {recent_lines or "  (no data)"}
 
 User question: {message}"""

@@ -1,1 +1,1 @@
-from app.routers import auth, categories, expenses, tags, users, wallets
+from app.routers import auth, categories, tags, transactions, users, wallets

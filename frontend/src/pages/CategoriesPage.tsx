@@ -7,8 +7,8 @@ import type { CategoryResponse } from '../lib/types';
 import { CATEGORY_ICONS, CategoryIcon, iconColorForBg } from '../lib/categoryIcons';
 
 const PRESET_COLORS = [
-  null, '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
-  '#00BCD4', '#FF5722', '#607D8B', '#795548', '#FFC107',
+  null, '#7a9e7e', '#6b8fba', '#b8895a', '#b06b7a', '#8b6fa8',
+  '#5a9ea8', '#b07060', '#7a8f9a', '#8a7060', '#a89050',
 ];
 
 export function CategoriesPage() {

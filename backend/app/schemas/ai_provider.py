@@ -37,7 +37,7 @@ class SuggestedTag(BaseModel):
     is_new: bool
 
 
-class AIExpenseItem(BaseModel):
+class AITransactionItem(BaseModel):
     amount: float
     currency: str
     category_name: str
@@ -45,10 +45,11 @@ class AIExpenseItem(BaseModel):
     description: str
     date: str
     ai_context: str
+    type: str
     suggested_tags: list[SuggestedTag]
 
 
-class AIExpenseGroupInfo(BaseModel):
+class AITransactionGroupInfo(BaseModel):
     description: str
     amount: float
     currency: str
@@ -56,17 +57,33 @@ class AIExpenseGroupInfo(BaseModel):
     is_new_category: bool
     date: str
     ai_context: str
+    type: str
     suggested_tags: list[SuggestedTag]
 
 
-class AIExpensesResponse(BaseModel):
+class AIRecurringItem(BaseModel):
+    amount: float
+    currency: str
+    category_name: str
+    is_new_category: bool
+    description: str
+    frequency: str
+    next_due: str
+    ai_context: str
+    type: str
+    suggested_tags: list[SuggestedTag]
+
+
+class AITransactionsResponse(BaseModel):
     result_type: str
-    expenses: list[AIExpenseItem]
-    group: AIExpenseGroupInfo | None
+    expenses: list[AITransactionItem]
+    group: AITransactionGroupInfo | None
+    recurring: AIRecurringItem | None = None
 
 
-class VoiceExpensesResponse(BaseModel):
+class VoiceTransactionsResponse(BaseModel):
     transcript: str
     result_type: str
-    expenses: list[AIExpenseItem]
-    group: AIExpenseGroupInfo | None
+    expenses: list[AITransactionItem]
+    group: AITransactionGroupInfo | None
+    recurring: AIRecurringItem | None = None

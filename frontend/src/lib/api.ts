@@ -8,17 +8,18 @@ import type {
   BudgetResponse,
   CategoryResponse,
   ChatResponse,
-  ExpenseListResponse,
-  ExpenseResponse,
-  ExpenseSummary,
-  GroupExpenseRequest,
-  RecurringExpenseResponse,
+  TransactionListResponse,
+  TransactionResponse,
+  TransactionSummary,
+  GroupTransactionRequest,
+  RecurringTransactionResponse,
   TagResponse,
   TokenResponse,
   UserResponse,
   VoiceParseResponse,
   WalletResponse,
   WalletSummary,
+  AIRecurringResponse,
 } from './types';
 
 const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api';
@@ -137,21 +138,22 @@ export const expenses = {
         q.set(k, String(v));
       }
     }
-    return request<ExpenseListResponse>(`/wallets/${walletId}/expenses?${q}`);
+    return request<TransactionListResponse>(`/wallets/${walletId}/transactions?${q}`);
   },
   get: (walletId: string, expenseId: string) =>
-    request<ExpenseResponse>(`/wallets/${walletId}/expenses/${expenseId}`),
+    request<TransactionResponse>(`/wallets/${walletId}/transactions/${expenseId}`),
   create: (walletId: string, data: {
     category_id?: string;
     category_name?: string;
     amount: number;
+    type?: 'expense' | 'income';
     description?: string;
     date?: string;
     tag_ids?: string[];
     tag_names?: string[];
     ai_context?: string;
   }) =>
-    request<ExpenseResponse>(`/wallets/${walletId}/expenses`, {
+    request<TransactionResponse>(`/wallets/${walletId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({ tag_ids: [], tag_names: [], ...data }),
     }),
@@ -162,23 +164,23 @@ export const expenses = {
     date?: string;
     tag_ids?: string[];
   }) =>
-    request<ExpenseResponse>(`/wallets/${walletId}/expenses/${expenseId}`, {
+    request<TransactionResponse>(`/wallets/${walletId}/transactions/${expenseId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
   delete: (walletId: string, expenseId: string) =>
-    request<void>(`/wallets/${walletId}/expenses/${expenseId}`, { method: 'DELETE' }),
+    request<void>(`/wallets/${walletId}/transactions/${expenseId}`, { method: 'DELETE' }),
   summary: (walletId: string, params: { start_date?: string; end_date?: string } = {}) => {
     const q = new URLSearchParams();
     if (params.start_date) q.set('start_date', params.start_date);
     if (params.end_date) q.set('end_date', params.end_date);
-    return request<ExpenseSummary>(`/wallets/${walletId}/expenses/summary?${q}`);
+    return request<TransactionSummary>(`/wallets/${walletId}/transactions/summary?${q}`);
   },
   aiParse: (walletId: string, text?: string, file?: File) => {
     const form = new FormData();
     if (text) form.append('text', text);
     if (file) form.append('file', file);
-    return request<AIParseResponse>(`/wallets/${walletId}/expenses/ai`, {
+    return request<AIParseResponse>(`/wallets/${walletId}/transactions/ai`, {
       method: 'POST',
       body: form,
       headers: {},
@@ -187,14 +189,14 @@ export const expenses = {
   voiceParse: (walletId: string, audio: Blob) => {
     const form = new FormData();
     form.append('audio', audio, 'recording.webm');
-    return request<VoiceParseResponse>(`/wallets/${walletId}/expenses/voice`, {
+    return request<VoiceParseResponse>(`/wallets/${walletId}/transactions/voice`, {
       method: 'POST',
       body: form,
       headers: {},
     });
   },
-  createGroup: (walletId: string, data: GroupExpenseRequest) =>
-    request<ExpenseResponse>(`/wallets/${walletId}/expenses/groups`, {
+  createGroup: (walletId: string, data: GroupTransactionRequest) =>
+    request<TransactionResponse>(`/wallets/${walletId}/transactions/groups`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -238,15 +240,31 @@ export const budgets = {
 
 export const recurring = {
   list: (walletId: string) =>
-    request<RecurringExpenseResponse[]>(`/wallets/${walletId}/recurring`),
+    request<RecurringTransactionResponse[]>(`/wallets/${walletId}/recurring`),
+  createFromAI: (walletId: string, data: AIRecurringResponse) =>
+    request<RecurringTransactionResponse>(`/wallets/${walletId}/recurring`, {
+      method: 'POST',
+      body: JSON.stringify({
+        category_name: data.category_name,
+        amount: data.amount,
+        type: data.type,
+        description: data.description || undefined,
+        frequency: data.frequency,
+        next_due: new Date(data.next_due).toISOString(),
+        tag_names: data.suggested_tags.map((t) => t.name),
+      }),
+    }),
   create: (walletId: string, data: {
-    category_id: string;
+    category_id?: string;
+    category_name?: string;
     amount: number;
+    type?: 'expense' | 'income';
     description?: string;
     frequency: string;
     next_due: string;
+    tag_names?: string[];
   }) =>
-    request<RecurringExpenseResponse>(`/wallets/${walletId}/recurring`, {
+    request<RecurringTransactionResponse>(`/wallets/${walletId}/recurring`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -258,7 +276,7 @@ export const recurring = {
     next_due?: string;
     is_active?: boolean;
   }) =>
-    request<RecurringExpenseResponse>(`/wallets/${walletId}/recurring/${id}`, {
+    request<RecurringTransactionResponse>(`/wallets/${walletId}/recurring/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),

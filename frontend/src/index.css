@@ -28,8 +28,9 @@
 
   --amber: oklch(72% 0.14 65);
   --amber-light: oklch(82% 0.12 70);
-  --rose: oklch(62% 0.14 20);
-  --rose-light: oklch(82% 0.08 20);
+  --rose: oklch(52% 0.12 20);
+  --rose-light: oklch(93% 0.02 20);
+  --rose-border: oklch(82% 0.04 20);
   --sky: oklch(62% 0.1 230);
 
   --radius-sm: 6px;
