@@ -177,7 +177,7 @@ export function ChatPage() {
         border: '1.5px solid var(--sand)',
         borderRadius: 14,
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         gap: 8,
         padding: '10px 12px',
         transition: 'border-color 0.15s',
