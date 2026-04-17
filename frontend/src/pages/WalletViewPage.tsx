@@ -208,9 +208,9 @@ export function WalletViewPage() {
                         fontSize: 12,
                         fontWeight: 500,
                         cursor: 'pointer',
-                        border: `1.5px solid ${tag.color ?? 'var(--cream-darker)'}`,
-                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}18` : 'var(--cream-dark)'),
-                        color: active ? 'white' : (tag.color ?? 'var(--ink-mid)'),
+                        border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : 'var(--cream-darker)'}`,
+                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}14` : 'var(--cream-dark)'),
+                        color: active ? 'white' : 'var(--ink-mid)',
                         transition: 'all 0.15s',
                       }}
                     >

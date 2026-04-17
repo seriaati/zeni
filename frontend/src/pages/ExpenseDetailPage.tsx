@@ -257,9 +257,9 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
                 borderRadius: 100,
                 fontSize: 12,
                 fontFamily: 'var(--font-body)',
-                background: tag.color ? `${tag.color}22` : 'var(--cream-dark)',
-                border: `1.5px solid ${tag.color ?? 'var(--sand)'}`,
-                color: tag.color ?? 'var(--ink-mid)',
+                background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--sand)'}`,
+                color: 'var(--ink-mid)',
               }}
             >
               {tag.name}
@@ -601,7 +601,7 @@ export function ExpenseDetailPage() {
                 <span
                   key={tag.id}
                   className="chip"
-                  style={{ background: tag.color ? `${tag.color}22` : undefined, borderColor: tag.color ?? undefined, color: tag.color ?? undefined }}
+                  style={{ background: tag.color ? `${tag.color}14` : undefined, borderColor: tag.color ? `${tag.color}50` : undefined }}
                 >
                   {tag.name}
                 </span>

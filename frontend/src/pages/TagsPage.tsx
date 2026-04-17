@@ -6,8 +6,8 @@ import { Modal } from '../components/ui/Modal';
 import type { TagResponse } from '../lib/types';
 
 const PRESET_COLORS = [
-  null, '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
-  '#00BCD4', '#FF5722', '#607D8B', '#795548', '#FFC107',
+  null, '#7a9e7e', '#6b8fba', '#b8895a', '#b06b7a', '#8b6fa8',
+  '#5a9ea8', '#b07060', '#7a8f9a', '#8a7060', '#a89050',
 ];
 
 export function TagsPage() {
@@ -163,9 +163,9 @@ export function TagsPage() {
                 gap: 8,
                 padding: '6px 12px 6px 10px',
                 borderRadius: 100,
-                background: tag.color ? `${tag.color}18` : 'var(--cream-dark)',
-                border: `1.5px solid ${tag.color ?? 'var(--cream-darker)'}`,
-                color: tag.color ?? 'var(--ink-mid)',
+                background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--cream-darker)'}`,
+                color: 'var(--ink-mid)',
               }}
             >
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />

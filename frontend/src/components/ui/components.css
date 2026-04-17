@@ -52,10 +52,11 @@
 .btn-danger {
   background: var(--rose-light);
   color: var(--rose);
+  border: 1px solid var(--rose-border);
 }
 .btn-danger:hover:not(:disabled) {
-  background: var(--rose);
-  color: white;
+  background: var(--rose-border);
+  color: var(--rose);
 }
 
 .btn-spinner {
