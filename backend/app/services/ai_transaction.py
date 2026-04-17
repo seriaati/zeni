@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from sqlmodel.ext.asyncio.session import AsyncSession
 
-    from app.providers.base import ParsedTransaction
+    from app.providers.base import ParsedRecurringTransaction, ParsedTransaction
 
 
 @dataclass
@@ -65,10 +65,25 @@ class ParsedGroupResult:
 
 
 @dataclass
+class ParsedRecurringResult:
+    amount: float
+    currency: str
+    category_name: str
+    is_new_category: bool
+    description: str
+    frequency: str
+    next_due: str
+    ai_context: str
+    type: str = "expense"
+    suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+
+
+@dataclass
 class ParsedTransactionsResult:
     result_type: str
     expenses: list[ParsedTransactionResult]
     group: ParsedGroupResult | None = None
+    recurring: ParsedRecurringResult | None = None
 
 
 def _mask_key(key: str) -> str:
@@ -119,7 +134,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0914
+async def parse_transactions_with_ai(  # noqa: PLR0914, PLR0915
     user_id: uuid.UUID,
     text: str | None,
     image_base64: str | None,
@@ -207,6 +222,25 @@ async def parse_transactions_with_ai(  # noqa: PLR0914
     existing_category_names_lower = {c.name.lower() for c in existing_categories}
     existing_tag_names_lower = {t.name.lower() for t in existing_tags}
 
+    def _enrich_recurring(parsed_rec: ParsedRecurringTransaction) -> ParsedRecurringResult:
+        is_new = parsed_rec.category_name.lower() not in existing_category_names_lower
+        tags = [
+            SuggestedTagResult(name=n, is_new=n.lower() not in existing_tag_names_lower)
+            for n in parsed_rec.suggested_tags
+        ]
+        return ParsedRecurringResult(
+            amount=parsed_rec.amount,
+            currency=parsed_rec.currency,
+            category_name=parsed_rec.category_name,
+            is_new_category=is_new,
+            description=parsed_rec.description,
+            frequency=parsed_rec.frequency,
+            next_due=parsed_rec.next_due,
+            ai_context=parsed_rec.ai_context,
+            type=parsed_rec.type,
+            suggested_tags=tags,
+        )
+
     def _enrich_transaction(parsed_txn: ParsedTransaction) -> ParsedTransactionResult:
         is_new = parsed_txn.category_name.lower() not in existing_category_names_lower
         tags = [
@@ -247,6 +281,13 @@ async def parse_transactions_with_ai(  # noqa: PLR0914
             suggested_tags=g_tags,
         )
 
+    enriched_recurring: ParsedRecurringResult | None = None
+    if output.recurring is not None:
+        enriched_recurring = _enrich_recurring(output.recurring)
+
     return ParsedTransactionsResult(
-        result_type=output.result_type, expenses=enriched_transactions, group=enriched_group
+        result_type=output.result_type,
+        expenses=enriched_transactions,
+        group=enriched_group,
+        recurring=enriched_recurring,
     )

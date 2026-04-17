@@ -113,10 +113,24 @@ export interface AIExpenseResponse {
   type: 'expense' | 'income';
 }
 
+export interface AIRecurringResponse {
+  amount: number;
+  currency: string;
+  category_name: string;
+  is_new_category: boolean;
+  description: string;
+  frequency: string;
+  next_due: string;
+  ai_context: string;
+  type: 'expense' | 'income';
+  suggested_tags: SuggestedTag[];
+}
+
 export interface AIParseResponse {
-  result_type: 'single' | 'multiple' | 'group';
+  result_type: 'single' | 'multiple' | 'group' | 'recurring';
   expenses: AIExpenseResponse[];
   group: AIExpenseResponse | null;
+  recurring: AIRecurringResponse | null;
 }
 
 export interface VoiceParseResponse extends AIParseResponse {

@@ -19,6 +19,7 @@ import type {
   VoiceParseResponse,
   WalletResponse,
   WalletSummary,
+  AIRecurringResponse,
 } from './types';
 
 const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api';
@@ -240,13 +241,28 @@ export const budgets = {
 export const recurring = {
   list: (walletId: string) =>
     request<RecurringTransactionResponse[]>(`/wallets/${walletId}/recurring`),
+  createFromAI: (walletId: string, data: AIRecurringResponse) =>
+    request<RecurringTransactionResponse>(`/wallets/${walletId}/recurring`, {
+      method: 'POST',
+      body: JSON.stringify({
+        category_name: data.category_name,
+        amount: data.amount,
+        type: data.type,
+        description: data.description || undefined,
+        frequency: data.frequency,
+        next_due: new Date(data.next_due).toISOString(),
+        tag_names: data.suggested_tags.map((t) => t.name),
+      }),
+    }),
   create: (walletId: string, data: {
-    category_id: string;
+    category_id?: string;
+    category_name?: string;
     amount: number;
     type?: 'expense' | 'income';
     description?: string;
     frequency: string;
     next_due: string;
+    tag_names?: string[];
   }) =>
     request<RecurringTransactionResponse>(`/wallets/${walletId}/recurring`, {
       method: 'POST',

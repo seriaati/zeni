@@ -17,6 +17,7 @@ from app.schemas.recurring import (
     RecurringTransactionResponse,
     RecurringTransactionUpdate,
 )
+from app.services.category_tag import find_or_create_category
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/recurring", tags=["recurring"])
 
@@ -85,11 +86,23 @@ async def create_recurring(
     session: DbDep,
 ) -> RecurringTransactionResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
-    await _validate_category(body.category_id, current_user.id, session)
+
+    if body.category_id is not None:
+        await _validate_category(body.category_id, current_user.id, session)
+        resolved_category_id = body.category_id
+    else:
+        assert body.category_name is not None
+        category = await find_or_create_category(
+            user_id=current_user.id,
+            name=body.category_name,
+            session=session,
+            category_type=body.type,
+        )
+        resolved_category_id = category.id
 
     recurring = RecurringTransaction(
         wallet_id=wallet_id,
-        category_id=body.category_id,
+        category_id=resolved_category_id,
         type=body.type,
         amount=body.amount,
         description=body.description,

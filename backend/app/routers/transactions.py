@@ -18,6 +18,7 @@ from app.models.transaction import Transaction, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.ai_provider import (
+    AIRecurringItem,
     AITransactionGroupInfo,
     AITransactionItem,
     AITransactionsResponse,
@@ -260,10 +261,27 @@ async def create_transaction_ai(
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
         )
 
+    recurring: AIRecurringItem | None = None
+    if parsed.recurring is not None:
+        r = parsed.recurring
+        recurring = AIRecurringItem(
+            amount=r.amount,
+            currency=r.currency,
+            category_name=r.category_name,
+            is_new_category=r.is_new_category,
+            description=r.description,
+            frequency=r.frequency,
+            next_due=r.next_due,
+            ai_context=r.ai_context,
+            type=r.type,
+            suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in r.suggested_tags],
+        )
+
     return AITransactionsResponse(
         result_type=parsed.result_type,
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
+        recurring=recurring,
     )
 
 
@@ -308,11 +326,28 @@ async def create_transaction_voice(
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
         )
 
+    voice_recurring: AIRecurringItem | None = None
+    if parsed.recurring is not None:
+        r = parsed.recurring
+        voice_recurring = AIRecurringItem(
+            amount=r.amount,
+            currency=r.currency,
+            category_name=r.category_name,
+            is_new_category=r.is_new_category,
+            description=r.description,
+            frequency=r.frequency,
+            next_due=r.next_due,
+            ai_context=r.ai_context,
+            type=r.type,
+            suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in r.suggested_tags],
+        )
+
     return VoiceTransactionsResponse(
         transcript=transcript,
         result_type=parsed.result_type,
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
+        recurring=voice_recurring,
     )
 
 

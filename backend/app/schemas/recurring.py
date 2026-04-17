@@ -4,18 +4,27 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 FrequencyType = Literal["daily", "weekly", "bi-weekly", "monthly", "yearly"]
 
 
 class RecurringTransactionCreate(BaseModel):
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
+    category_name: str | None = None
     type: Literal["expense", "income"] = "expense"
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=500)
     frequency: FrequencyType
     next_due: datetime
+    tag_names: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_category(self) -> RecurringTransactionCreate:
+        if self.category_id is None and self.category_name is None:
+            msg = "Either category_id or category_name must be provided"
+            raise ValueError(msg)
+        return self
 
 
 class RecurringTransactionUpdate(BaseModel):

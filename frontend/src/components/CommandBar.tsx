@@ -24,11 +24,13 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { expenses as expensesApi } from '../lib/api';
+import { expenses as expensesApi, recurring as recurringApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
-import type { AIExpenseResponse, AIParseResponse } from '../lib/types';
-import { fmt } from '../lib/utils';
+import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse } from '../lib/types';
+import { fmt, FREQUENCIES } from '../lib/utils';
+import { DatePicker } from './ui/DatePicker';
+import { Select } from './ui/Select';
 
 interface CommandBarProps {
   open: boolean;
@@ -37,6 +39,16 @@ interface CommandBarProps {
 }
 
 type Mode = 'input' | 'processing' | 'review';
+
+interface EditableRecurring extends AIRecurringResponse {
+  _editAmount: string;
+  _editCategory: string;
+  _editDescription: string;
+  _editTags: string;
+  _editFrequency: string;
+  _editNextDue: string;
+  _editing: boolean;
+}
 
 interface EditableExpense extends AIExpenseResponse {
   _editAmount: string;
@@ -84,6 +96,19 @@ function commitEditable(e: EditableExpense): EditableExpense {
     category_name: e._editCategory.trim() || e.category_name,
     description: e._editDescription.trim() || null,
     suggested_tags: newTags,
+    _editing: false,
+  };
+}
+
+function makeEditableRecurring(r: AIRecurringResponse): EditableRecurring {
+  return {
+    ...r,
+    _editAmount: String(r.amount),
+    _editCategory: r.category_name,
+    _editDescription: r.description ?? '',
+    _editTags: r.suggested_tags.map((t) => t.name).join(', '),
+    _editFrequency: r.frequency,
+    _editNextDue: r.next_due.slice(0, 10),
     _editing: false,
   };
 }
@@ -391,6 +416,239 @@ function MultipleReview({
   );
 }
 
+function RecurringReview({
+  recurring,
+  onChange,
+  onSave,
+  saving,
+}: {
+  recurring: EditableRecurring;
+  onChange: (r: EditableRecurring) => void;
+  activeWalletCurrency?: string;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    fontSize: 13,
+    color: 'var(--ink)',
+    background: 'white',
+    border: '1px solid var(--sand)',
+    borderRadius: 6,
+    padding: '3px 7px',
+    outline: 'none',
+    fontFamily: 'var(--font-body)',
+  };
+
+  const fieldLabel = (text: string) => (
+    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{text}</div>
+  );
+
+  const startEditing = () => onChange({
+    ...recurring,
+    _editAmount: String(recurring.amount),
+    _editCategory: recurring.category_name,
+    _editDescription: recurring.description ?? '',
+    _editTags: recurring.suggested_tags.map((t) => t.name).join(', '),
+    _editFrequency: recurring.frequency,
+    _editNextDue: recurring.next_due.slice(0, 10),
+    _editing: true,
+  });
+
+  const commit = () => {
+    const newAmount = parseFloat(recurring._editAmount);
+    const newTags = recurring._editTags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, is_new: !recurring.suggested_tags.find((t) => t.name === name) }));
+    onChange({
+      ...recurring,
+      amount: isNaN(newAmount) ? recurring.amount : newAmount,
+      category_name: recurring._editCategory.trim() || recurring.category_name,
+      description: recurring._editDescription.trim() || '',
+      frequency: recurring._editFrequency,
+      next_due: recurring._editNextDue,
+      suggested_tags: newTags,
+      _editing: false,
+    });
+  };
+
+  const freqLabel = FREQUENCIES.find((f) => f.value === recurring.frequency)?.label ?? recurring.frequency;
+
+  return (
+    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{
+        background: 'var(--cream)',
+        borderRadius: 10,
+        padding: '12px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        border: recurring._editing ? '1.5px solid var(--forest)' : '1.5px solid transparent',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>
+          <RefreshCw size={12} />
+          Recurring
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div>
+            {fieldLabel('Amount')}
+            {recurring._editing ? (
+              <input
+                type="number"
+                value={recurring._editAmount}
+                onChange={(e) => onChange({ ...recurring, _editAmount: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+                style={{ ...inputStyle, fontSize: 16, fontFamily: 'var(--font-display)' }}
+                autoFocus
+              />
+            ) : (
+              <div style={{ fontSize: 16, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+                {recurring.amount}
+              </div>
+            )}
+          </div>
+
+          <div style={{
+            background: recurring.is_new_category && !recurring._editing ? 'oklch(97% 0.02 145)' : 'transparent',
+            borderRadius: 6,
+            padding: recurring.is_new_category && !recurring._editing ? '4px 8px' : 0,
+            border: recurring.is_new_category && !recurring._editing ? '1px solid oklch(82% 0.08 145)' : 'none',
+          }}>
+            <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Category
+              {recurring.is_new_category && !recurring._editing && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', borderRadius: 3, padding: '1px 4px' }}>
+                  <WandSparkles size={8} style={{ display: 'inline', verticalAlign: 'middle' }} /> New
+                </span>
+              )}
+            </div>
+            {recurring._editing ? (
+              <input
+                type="text"
+                value={recurring._editCategory}
+                onChange={(e) => onChange({ ...recurring, _editCategory: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+                style={inputStyle}
+              />
+            ) : (
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{recurring.category_name}</div>
+            )}
+          </div>
+        </div>
+
+        {(recurring.description || recurring._editing) && (
+          <div>
+            {fieldLabel('Description')}
+            {recurring._editing ? (
+              <input
+                type="text"
+                value={recurring._editDescription}
+                onChange={(e) => onChange({ ...recurring, _editDescription: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+                placeholder="Optional"
+                style={inputStyle}
+              />
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--ink)' }}>{recurring.description}</div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div>
+            {fieldLabel('Frequency')}
+            {recurring._editing ? (
+              <Select
+                value={recurring._editFrequency}
+                onChange={(v) => onChange({ ...recurring, _editFrequency: v })}
+                options={FREQUENCIES}
+              />
+            ) : (
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{freqLabel}</div>
+            )}
+          </div>
+
+          <div>
+            {fieldLabel('Next due')}
+            {recurring._editing ? (
+              <DatePicker
+                value={recurring._editNextDue}
+                onChange={(v) => onChange({ ...recurring, _editNextDue: v })}
+              />
+            ) : (
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{recurring.next_due.slice(0, 10)}</div>
+            )}
+          </div>
+        </div>
+
+        {(recurring.suggested_tags.length > 0 || recurring._editing) && (
+          <div>
+            {fieldLabel('Tags')}
+            {recurring._editing ? (
+              <input
+                type="text"
+                value={recurring._editTags}
+                onChange={(e) => onChange({ ...recurring, _editTags: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+                placeholder="tag1, tag2"
+                style={inputStyle}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {recurring.suggested_tags.map((t) => (
+                  t.is_new ? (
+                    <span key={t.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', border: '1px solid oklch(82% 0.08 145)', borderRadius: 5, padding: '2px 6px' }}>
+                      <WandSparkles size={9} /> {t.name}
+                    </span>
+                  ) : (
+                    <span key={t.name} className="chip" style={{ fontSize: 11, padding: '2px 6px' }}>{t.name}</span>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {recurring.ai_context && !recurring._editing && (
+          <div style={{ fontSize: 11, color: 'var(--ink-light)', fontStyle: 'italic' }}>
+            AI: {recurring.ai_context}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+          {recurring._editing ? (
+            <>
+              <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => onChange({ ...recurring, _editing: false })}>Cancel</button>
+              <button className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={commit}>
+                <Check size={11} /> Apply
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={startEditing}>
+              <Pencil size={11} /> Edit
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
+        <button className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={onSave} disabled={saving}>
+          {saving && <span className="btn-spinner" />}
+          <RefreshCw size={13} />
+          Save recurring
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
+        <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
+        <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
+      </div>
+    </div>
+  );
+}
+
 function GroupReview({
   parent,
   items,
@@ -567,6 +825,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [multiExpenses, setMultiExpenses] = useState<EditableExpense[]>([]);
   const [groupParent, setGroupParent] = useState<EditableExpense | null>(null);
   const [groupItems, setGroupItems] = useState<EditableExpense[]>([]);
+  const [recurringExpense, setRecurringExpense] = useState<EditableRecurring | null>(null);
 
   const [error, setError] = useState('');
   const [recording, setRecording] = useState(false);
@@ -595,6 +854,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     setMultiExpenses([]);
     setGroupParent(null);
     setGroupItems([]);
+    setRecurringExpense(null);
     setError('');
     setImageFile(null);
     setImagePreview(null);
@@ -626,6 +886,8 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
       setSingleExpense(makeEditable(result.expenses[0]));
     } else if (result.result_type === 'multiple') {
       setMultiExpenses(result.expenses.map(makeEditable));
+    } else if (result.result_type === 'recurring') {
+      if (result.recurring) setRecurringExpense(makeEditableRecurring(result.recurring));
     } else {
       setGroupParent(result.group ? makeEditable(result.group) : null);
       setGroupItems(result.expenses.map(makeEditable));
@@ -702,6 +964,33 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         }),
       ));
       toast(`${committed.length} transactions saved!`, 'success');
+      onExpenseAdded?.();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveRecurring = async () => {
+    if (!recurringExpense || !activeWallet) return;
+    setSaving(true);
+    try {
+      const tags = recurringExpense._editTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      await recurringApi.create(activeWallet.id, {
+        category_name: recurringExpense._editCategory.trim() || recurringExpense.category_name,
+        amount: parseFloat(recurringExpense._editAmount) || recurringExpense.amount,
+        type: recurringExpense.type,
+        description: recurringExpense._editDescription.trim() || undefined,
+        frequency: recurringExpense._editFrequency,
+        next_due: new Date(recurringExpense._editNextDue).toISOString(),
+        tag_names: tags,
+      });
+      toast('Recurring transaction saved!', 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -1019,6 +1308,17 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             onChange={setMultiExpenses}
             activeWalletCurrency={activeWallet?.currency}
             onSave={handleSaveMultiple}
+            saving={saving}
+          />
+        )}
+
+        {/* Review: recurring */}
+        {mode === 'review' && resultType === 'recurring' && recurringExpense && (
+          <RecurringReview
+            recurring={recurringExpense}
+            onChange={setRecurringExpense}
+            activeWalletCurrency={activeWallet?.currency}
+            onSave={handleSaveRecurring}
             saving={saving}
           />
         )}

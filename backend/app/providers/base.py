@@ -29,10 +29,23 @@ class ParsedTransactionGroupInfo(BaseModel):
     suggested_tags: list[str] = Field(default_factory=list)
 
 
+class ParsedRecurringTransaction(BaseModel):
+    amount: float
+    currency: str
+    category_name: str
+    description: str
+    frequency: str
+    next_due: str
+    ai_context: str
+    type: str = "expense"
+    suggested_tags: list[str] = Field(default_factory=list)
+
+
 class ParsedTransactionOutput(BaseModel):
-    result_type: Literal["single", "multiple", "group"]
+    result_type: Literal["single", "multiple", "group", "recurring"]
     expenses: list[ParsedTransaction]
     group: ParsedTransactionGroupInfo | None = None
+    recurring: ParsedRecurringTransaction | None = None
 
 
 @dataclass
@@ -68,6 +81,8 @@ do NOT infer a group just because items appear together
 (e.g. "lunch with Sarah: burger 10$, coke 2$", or a receipt scan with a store name and \
 line items) — only use "group" when there is clear context tying the items together; \
 NEVER infer groups from coincidental or unrelated purchases
+- "recurring": user describes a repeating transaction with explicit or implied periodicity \
+(e.g. "Netflix monthly", "rent every month", "gym membership $50/mo", "weekly grocery budget $100")
 
 For "group" result_type:
 - The `group` field must be filled with the parent transaction metadata \
@@ -79,6 +94,13 @@ For "single" and "multiple":
 - The `group` field must be null
 - For "single", `expenses` has exactly 1 item
 - For "multiple", `expenses` has N items (one per independent transaction)
+
+For "recurring" result_type:
+- The `recurring` field must be filled; `expenses` must be empty; `group` must be null
+- `frequency` must be one of: "daily", "weekly", "bi-weekly", "monthly", "yearly"
+- `next_due`: infer the next occurrence date in ISO 8601 (YYYY-MM-DD). If user specifies a \
+start date, use that. If unspecified: use the 1st of next month for monthly, next Monday for \
+weekly, tomorrow for daily, next year's current month/day for yearly
 
 Rules for each transaction item:
 - amount must be a positive number
