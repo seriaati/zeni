@@ -1266,18 +1266,25 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
 
-            <button
-              className="icon-btn"
-              onClick={recording ? stopRecording : startRecording}
-              title={recording ? 'Stop recording' : 'Record voice'}
-              style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
-            >
-              {recording ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
-
-            <button className="icon-btn" onClick={onClose}>
-              <X size={16} />
-            </button>
+            {text.trim() || imageFile ? (
+              <button
+                className="icon-btn"
+                onClick={mode === 'input' ? handleSubmit : handleSubmit}
+                title="Send"
+                style={{ color: 'var(--ink)', background: 'var(--cream)' }}
+              >
+                <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button
+                className="icon-btn"
+                onClick={recording ? stopRecording : startRecording}
+                title={recording ? 'Stop recording' : 'Record voice'}
+                style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
+              >
+                {recording ? <MicOff size={16} /> : <Mic size={16} />}
+              </button>
+            )}
           </div>
         </div>
 
