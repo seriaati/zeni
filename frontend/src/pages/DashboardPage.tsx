@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Layers, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -238,7 +238,17 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start', minWidth: 0 }} className="dashboard-bottom-grid">
+      <div
+        ref={(el) => {
+          if (!el) return;
+          const grid = el;
+          const firstChild = el.firstElementChild as HTMLElement | null;
+          console.debug('[layout-debug] viewport width:', window.innerWidth);
+          console.debug('[layout-debug] page-content width:', el.parentElement?.offsetWidth);
+          console.debug('[layout-debug] dashboard-bottom-grid width:', grid.scrollWidth, '(offsetWidth:', grid.offsetWidth, ')');
+          if (firstChild) console.debug('[layout-debug] recent-transactions column width:', firstChild.scrollWidth, '(offsetWidth:', firstChild.offsetWidth, ')');
+        }}
+        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start', minWidth: 0 }} className="dashboard-bottom-grid">
         {/* Recent expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
