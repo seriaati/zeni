@@ -8,6 +8,10 @@ Named after 銭, the Japanese word for "money", Zeni is a personal finance track
 
 Zeni is built with privacy in mind. You can self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).
 
+## Demo
+
+<https://github.com/seriaati/zeni/raw/refs/heads/main/assets/demo.mp4>
+
 ## Features
 
 - **⌘ K to log anything**: One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.
