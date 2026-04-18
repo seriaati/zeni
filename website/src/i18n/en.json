@@ -1,7 +1,7 @@
 {
   "site": {
-    "title": "Zeni | Personal Finance Tracker",
-    "description": "Money tracked without the friction. AI-powered command bar, receipt scanning, chat with your data - self-hosted and privacy-first.",
+    "title": "Zeni | Money tracked without the friction",
+    "description": "A personal finance tracker built for people who want clarity without complexity. It removes the hassle of tracking your money, so you can focus on understanding it.",
     "appUrl": "https://app.zeni.seria.moe"
   },
   "nav": {
