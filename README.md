@@ -35,10 +35,18 @@ Edit the `backend` service environment variables in [`docker-compose.yml`](docke
 
 | Variable | Default | Description |
 |---|---|---|
+| `DATABASE_URL` | — | **Required.** PostgreSQL connection string. |
 | `SECRET_KEY` | — | **Required.** Long random string used to sign JWT tokens. |
-| `CORS_ORIGINS` | `["http://localhost"]` | JSON array of allowed origins. Change if hosting on a custom domain. |
+| `ALGORITHM` | `HS256` | JWT signing algorithm. |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Access token expiration time in minutes. |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | Refresh token expiration time in days. |
+| `CORS_ORIGINS` | `["http://localhost:5173","http://localhost:3000"]` | JSON array of allowed origins. Change if hosting on a custom domain. |
 | `SIGNUPS_ENABLED` | `true` | Set to `false` to prevent new registrations after your account is created. |
-| `DATABASE_URL` | — | PostgreSQL connection string. |
+| `DATA_RETENTION_ENABLED` | `false` | Enable automatic deletion of old data. |
+| `DATA_RETENTION_DAYS` | `14` | Number of days to retain data before deletion. |
+| `DATA_RETENTION_EXEMPT_USERNAMES` | `[]` | JSON array of usernames exempt from data retention. |
+| `RECURRING_INTERVAL_MINUTES` | `60` | Interval in minutes for processing recurring transactions. |
+| `DATA_RETENTION_INTERVAL_HOURS` | `24` | Interval in hours for running data retention cleanup. |
 | `STT_PROVIDER` | `local` | Speech-to-text provider: `local` (Whisper, runs on your server) or `external`. |
 | `WHISPER_MODEL_SIZE` | `base` | Whisper model size: `tiny`, `base`, `small`, `medium`, `large`. |
 

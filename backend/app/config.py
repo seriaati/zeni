@@ -20,5 +20,12 @@ class Settings(BaseSettings):
     whisper_model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
     whisper_device: Literal["cpu", "cuda", "auto"] = "auto"
 
+    data_retention_enabled: bool = False
+    data_retention_days: int = 14
+    data_retention_exempt_usernames: list[str] = []
+
+    recurring_interval_minutes: int = 60
+    data_retention_interval_hours: int = 24
+
 
 settings = Settings()

@@ -21,6 +21,7 @@ dependencies = [
     "rapidocr-onnxruntime>=1.4.4",
     "sqlmodel>=0.0.37",
     "uvicorn>=0.42.0",
+    "apscheduler>=3.11.2",
 ]
 
 [tool.pyright]

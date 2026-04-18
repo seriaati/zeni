@@ -3,11 +3,12 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import get_session
 from app.mcp_server import mcp
 from app.routers import (
     ai_provider,
@@ -23,18 +24,32 @@ from app.routers import (
     users,
     wallets,
 )
-from app.services.recurring import process_due_recurring_transactions
+from app.services.scheduler import run_data_retention, run_recurring_transactions
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
-    async for session in get_session():
-        await process_due_recurring_transactions(session)
-        break
+async def lifespan(_: FastAPI) -> AsyncGenerator[None]:  # noqa: RUF029
+    scheduler = AsyncIOScheduler()
+
+    scheduler.add_job(
+        run_recurring_transactions,
+        IntervalTrigger(minutes=settings.recurring_interval_minutes),
+        id="recurring-transactions",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_data_retention,
+        IntervalTrigger(hours=settings.data_retention_interval_hours),
+        id="data-retention",
+        replace_existing=True,
+    )
+
+    scheduler.start()
     yield
+    scheduler.shutdown(wait=True)
 
 
 app = FastAPI(title="Zeni API", version="0.1.0", lifespan=lifespan)
