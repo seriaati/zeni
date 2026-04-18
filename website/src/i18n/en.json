@@ -52,7 +52,7 @@
     "commandBar": {
       "tag": "AI-powered",
       "title": "⌘ K to log anything",
-      "body": "One command bar to rule them all. Record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Zeni infers context, categorizes with high detail, and fills in the blanks.",
+      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.",
       "list": [
         "AI infers context and categorizes automatically",
         "High-detail categorization with tags",
@@ -69,7 +69,7 @@
     },
     "receipt": {
       "title": "Receipt & invoice scanning",
-      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date - then records it for you.",
+      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.",
       "detail": "Photos · PDF e-invoices"
     },
     "chat": {
@@ -80,12 +80,12 @@
     },
     "models": {
       "title": "Model agnostic",
-      "body": "Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini - switch providers any time.",
+      "body": "Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.",
       "detail": "OpenAI · Anthropic · Google Gemini · OpenRouter"
     },
     "voice": {
       "title": "Voice input",
-      "body": "Tap the mic and speak your expense. Audio is processed locally - nothing leaves your server.",
+      "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.",
       "detail": "Local audio processing · No data sent to third parties"
     },
     "wallets": {
@@ -95,7 +95,7 @@
     },
     "categories": {
       "title": "Categories & tags",
-      "body": "Organize expenses with emoji-icon categories and freeform tags. The AI suggests both automatically based on context - reducing your input to near zero. Filter by either when reviewing your history.",
+      "body": "Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.",
       "pillDining": "🍽 Dining",
       "pillTravel": "✈️ Travel",
       "pillGroceries": "🛒 Groceries",

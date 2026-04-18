@@ -4,5 +4,19 @@
 
 [Official website](https://zeni.seria.moe) | [Hosted instance](https://app.zeni.seria.moe)
 
-Zeni is a personal finance tracker built for people who want clarity without complexity. It removes the hassle of
-tracking your money, so you can focus on understanding it. With Zeni, you can log transactions easily, get detailed insights, and chat with your data - all while keeping your privacy intact.
+Named after 銭, the Japanese word for "money", Zeni is a personal finance tracker built for people who want clarity without complexity. It removes the hassle of tracking your money, so you can focus on understanding it.
+
+Zeni is built with privacy in mind. You can self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).
+
+## Features
+
+- **⌘ K to log anything**: One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.
+- **Receipt & invoice scanning**: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
+- **Chat with your data**: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
+- **Model agnostic**: Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.
+- **Voice input**: Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.
+- **Multiple wallets**: Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.
+- **Categories & tags**: Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.
+- **MCP & API**: Connect Zeni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
+- **Budgets**: Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.
+- **Dashboard analytics**: Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.
