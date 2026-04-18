@@ -127,7 +127,7 @@ export function Layout() {
         {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
           <Command size={14} />
-          <span>Quick add</span>
+          <span>Add expense</span>
           <kbd className="kbd-hint">⌘K</kbd>
         </button>
 
