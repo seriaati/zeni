@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
+import logoSrc from '../assets/logo-white.svg';
 
 export function LoginPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -57,20 +58,8 @@ export function LoginPage() {
 
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              background: 'var(--cream)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: 20,
-              fontStyle: 'italic',
-              color: 'var(--forest)',
-            }}>Z</div>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--cream)', fontStyle: 'italic' }}>Zeni</span>
+            <img src={logoSrc} alt="" width="28" height="28" style={{ borderRadius: 6 }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Zeni</span>
           </div>
         </div>
 
@@ -83,19 +72,20 @@ export function LoginPage() {
             marginBottom: 20,
             fontStyle: 'italic',
           }}>
-            Track spending<br />without the<br />tedium.
+            Money tracked<br />without the friction.
           </p>
           <p style={{ fontSize: 14, color: 'oklch(90% 0.04 155)', lineHeight: 1.6 }}>
-            Type "coffee 4.50" and you're done.<br />
-            Your data, your server, your privacy.
+            Type "coffee 4.50", snap a receipt, or just ask -<br />
+            Zeni understands. Record any transaction in seconds.
           </p>
         </div>
 
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            'AI parses your expenses instantly',
+            'AI command bar to log anything in seconds',
+            'Receipt & invoice scanning',
+            'Chat with your data in plain language',
             'Multiple wallets & currencies',
-            'Self-hosted — your data stays yours',
           ].map((feat) => (
             <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber-light)', flexShrink: 0 }} />
