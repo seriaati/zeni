@@ -1,8 +1,8 @@
 {
   "site": {
-    "title": "Zeni — Personal Finance Tracker",
-    "description": "Track expenses effortlessly with AI. Voice input, receipt scanning, smart budgets, and natural language insights — all in one elegant app.",
-    "appUrl": "https://zeni-app.seria.moe"
+    "title": "Zeni - Personal Finance Tracker",
+    "description": "Money tracked without the friction. AI-powered command bar, receipt scanning, chat with your data - self-hosted and privacy-first.",
+    "appUrl": "https://app.zeni.seria.moe"
   },
   "nav": {
     "logo": "Zeni",
@@ -12,18 +12,18 @@
   },
   "footer": {
     "brand": "Zeni",
-    "tagline": "Personal finance, made thoughtful."
+    "tagline": "Money tracked without the friction."
   },
   "hero": {
     "eyebrow": "Personal finance tracker",
-    "headline": "Money, tracked",
+    "headline": "Money tracked",
     "headlineEm": "without the friction.",
-    "sub": "Just say \"coffee 4.50\" — Zeni understands. AI parses your expenses from text, voice, or a photo of your receipt. No forms, no categories to memorise.",
-    "ctaPrimary": "Try Zeni",
+    "sub": "Type \"coffee 4.50\", snap a receipt, or just ask - Zeni understands. Record any transaction in seconds.",
+    "ctaPrimary": "Try Zeni free",
     "ctaGhost": "See features ↓",
     "mockup": {
       "cmdText": "lunch with team 38",
-      "cmdHint": "⌘K",
+      "cmdHint": "⌘ K",
       "labelAmount": "Amount",
       "labelCategory": "Category",
       "labelTags": "Tags",
@@ -31,7 +31,7 @@
       "category": "🍽 Dining",
       "tagWork": "work",
       "tagTeam": "✦ team",
-      "aiNote": "AI understood: lunch expense with colleagues",
+      "aiNote": "AI understood: team lunch, grouped expense",
       "btnEdit": "Edit",
       "btnSave": "Save expense"
     },
@@ -46,73 +46,77 @@
     }
   },
   "features": {
-    "sectionTitle": "Everything you need,",
-    "sectionTitleEm": "nothing you don't.",
-    "sectionSub": "A self-hosted finance tracker built for people who want clarity without complexity.",
+    "sectionTitle": "Everything you need to",
+    "sectionTitleEm": "remove the hassle.",
+    "sectionSub": "A privacy-first finance tracker built for people who want clarity without complexity.",
     "commandBar": {
       "tag": "AI-powered",
-      "title": "⌘K to log anything",
-      "body": "Open the command bar and type naturally — \"sushi 28 dinner with Sarah\" — or navigate the app. Zeni's AI extracts the amount, category, date, and tags automatically.",
+      "title": "⌘ K to log anything",
+      "body": "One command bar to rule them all. Record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Zeni infers context, categorizes with high detail, and fills in the blanks.",
       "list": [
-        "Natural language parsing",
-        "Auto-creates new categories",
-        "Suggests relevant tags",
+        "AI infers context and categorizes automatically",
+        "High-detail categorization with tags",
         "Review & edit before saving"
       ],
-      "demoInput": "sushi 28 dinner with Sarah",
+      "demoInput": "lunch with team 38",
       "demoLabelAmount": "Amount",
       "demoLabelCategory": "Category",
       "demoLabelTags": "Tags",
-      "demoAmount": "$28.00",
-      "demoCategory": "🍣 Dining",
-      "demoTagDinner": "dinner",
-      "demoTagSarah": "✦ sarah"
-    },
-    "voice": {
-      "title": "Voice input",
-      "body": "Tap the mic and speak your expense. Whisper transcribes it locally or via an external provider — your choice, your data.",
-      "detail": "Local Whisper · External STT · No audio leaves your server"
+      "demoAmount": "$38.00",
+      "demoCategory": "🍽 Dining",
+      "demoTagDinner": "work",
+      "demoTagSarah": "✦ team"
     },
     "receipt": {
-      "title": "Receipt scanning",
-      "body": "Paste or attach a photo of any receipt. The AI reads the total, merchant, and date — no manual entry needed.",
-      "detail": "Paste from clipboard · Attach file · Instant parse"
+      "title": "Receipt & invoice scanning",
+      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date - then records it for you.",
+      "detail": "Photos · PDF e-invoices"
     },
     "chat": {
       "title": "Chat with your data",
-      "body": "Ask anything in plain language. \"How much did I spend on food last month?\" — Zeni answers with your actual numbers.",
-      "bubbleUser": "Any tips on where I could cut back?",
-      "bubbleAi": "Your dining spend is 34% above last month. Cooking at home 2–3 more times per week could save ~$120."
+      "body": "Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.",
+      "bubbleUser": "How much have I earned in total this month?",
+      "bubbleAi": "You've earned $4,320 this month across 3 income sources. Your biggest expense category is Dining at $496."
     },
-    "budgets": {
-      "title": "Smart budgets",
-      "body": "Set weekly or monthly limits per category. Get warned at 80% and alerted when exceeded — right on the dashboard.",
-      "barDining": "Dining",
-      "barTransport": "Transport",
-      "barShopping": "Shopping"
+    "models": {
+      "title": "Model agnostic",
+      "body": "Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini - switch providers any time.",
+      "detail": "OpenAI · Anthropic · Google Gemini · OpenRouter"
     },
-    "recurring": {
-      "title": "Recurring expenses",
-      "body": "Track subscriptions and regular bills. Set daily, weekly, biweekly, monthly, or yearly schedules — Zeni reminds you when they're due.",
-      "detail": "Netflix · Rent · Gym · Insurance"
+    "voice": {
+      "title": "Voice input",
+      "body": "Tap the mic and speak your expense. Audio is processed locally - nothing leaves your server.",
+      "detail": "Local audio processing · No data sent to third parties"
     },
     "wallets": {
       "title": "Multiple wallets",
-      "body": "Separate personal, business, and shared expenses across wallets. Each wallet has its own currency, history, and analytics.",
+      "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.",
       "detail": "Multi-currency · Per-wallet analytics"
     },
     "categories": {
       "title": "Categories & tags",
-      "body": "Organise with emoji-icon categories and freeform tags. The AI suggests both automatically — you can always override.",
+      "body": "Organize expenses with emoji-icon categories and freeform tags. The AI suggests both automatically based on context - reducing your input to near zero. Filter by either when reviewing your history.",
       "pillDining": "🍽 Dining",
       "pillTravel": "✈️ Travel",
       "pillGroceries": "🛒 Groceries",
       "pillWork": "#work"
     },
+    "mcp": {
+      "title": "MCP & API",
+      "body": "Connect Zeni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.",
+      "detail": "MCP server · REST API · Bring your own agents"
+    },
+    "budgets": {
+      "title": "Budgets",
+      "body": "Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.",
+      "barDining": "Dining",
+      "barTransport": "Transport",
+      "barShopping": "Shopping"
+    },
     "dashboard": {
       "tag": "Analytics",
       "title": "Dashboard at a glance",
-      "body": "Monthly total, weekly pace, daily average, budget status, recent transactions, and a category breakdown chart — all loading instantly on open.",
+      "body": "Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.",
       "cardMonth": {
         "label": "This month",
         "value": "$1,240",
@@ -140,20 +144,20 @@
     "tag": "Open source · Self-hosted",
     "title": "Your data stays",
     "titleEm": "yours.",
-    "sub": "Zeni runs entirely on your own infrastructure. No cloud sync, no third-party analytics, no subscription fees.",
+    "sub": "Self-host Zeni so all your personal finance data lives on your own disk. No tracking, no ads, and no subscription fees.",
     "checklist": [
-      "FastAPI + PostgreSQL backend",
-      "Bring your own AI provider (Anthropic, OpenAI, etc.)",
-      "Local Whisper STT — no audio leaves your server",
-      "MCP server for AI assistant integrations",
+      "All data stored locally on your own server",
+      "Bring your own AI provider - OpenAI, Anthropic, Gemini, OpenRouter",
+      "Local audio processing",
       "Export your data anytime"
     ],
     "codeFilename": "docker-compose.yml"
   },
   "cta": {
     "title": "Start tracking",
-    "titleEm": "with intention.",
-    "sub": "Open source, self-hosted, and built to last. No subscriptions, no lock-in.",
-    "btnPrimary": "Try Zeni"
+    "titleEm": "without the hassle.",
+    "sub": "Self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).",
+    "btnPrimary": "Try hosted free",
+    "btnSecondary": "Self-host with Docker ↗"
   }
 }
