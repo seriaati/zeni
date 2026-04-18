@@ -20,3 +20,28 @@ Zeni is built with privacy in mind. You can self-host with Docker Compose for fu
 - **MCP & API**: Connect Zeni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
 - **Budgets**: Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.
 - **Dashboard analytics**: Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.
+
+## Self-Hosting
+
+Requirements: [Docker](https://docs.docker.com/get-docker/).
+
+1. Create a new folder and copy the [`docker-compose.yml`](docker-compose.yml) file into it.
+2. Run `docker compose up -d`.
+3. Open `http://localhost` and create your account, enjoy tracking your money with Zeni!
+
+### Configuration
+
+Edit the `backend` service environment variables in [`docker-compose.yml`](docker-compose.yml):
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECRET_KEY` | — | **Required.** Long random string used to sign JWT tokens. |
+| `CORS_ORIGINS` | `["http://localhost"]` | JSON array of allowed origins. Change if hosting on a custom domain. |
+| `SIGNUPS_ENABLED` | `true` | Set to `false` to prevent new registrations after your account is created. |
+| `DATABASE_URL` | — | PostgreSQL connection string. |
+| `STT_PROVIDER` | `local` | Speech-to-text provider: `local` (Whisper, runs on your server) or `external`. |
+| `WHISPER_MODEL_SIZE` | `base` | Whisper model size: `tiny`, `base`, `small`, `medium`, `large`. |
+
+### Custom domain
+
+Update `CORS_ORIGINS` to include your domain and expose port `443` via a reverse proxy (e.g. Caddy, Traefik, or nginx) in front of the `frontend` container.
