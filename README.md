@@ -53,6 +53,8 @@ Edit the `backend` service environment variables in [`docker-compose.yml`](docke
 | `DATA_RETENTION_INTERVAL_HOURS` | `24` | Interval in hours for running data retention cleanup. |
 | `STT_PROVIDER` | `local` | Speech-to-text provider: `local` (Whisper, runs on your server) or `external`. |
 | `WHISPER_MODEL_SIZE` | `base` | Whisper model size: `tiny`, `base`, `small`, `medium`, `large`. |
+| `MCP_ALLOWED_HOSTS` | `["127.0.0.1:*","localhost:*","[::1]:*"]` | JSON array of allowed `Host` header values for the MCP endpoint. Add your domain (e.g. `"api.example.com"`) when hosting behind a reverse proxy. |
+| `MCP_ALLOWED_ORIGINS` | `["http://127.0.0.1:*","http://localhost:*","http://[::1]:*"]` | JSON array of allowed `Origin` header values for the MCP endpoint. Add your frontend origin when hosting on a custom domain. |
 
 ### Custom domain
 

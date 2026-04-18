@@ -7,8 +7,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from sqlmodel import col, select
 
+from app.config import settings as app_settings
 from app.database import get_session
 from app.models.api_token import APIToken
 from app.models.category import Category
@@ -19,6 +21,11 @@ from app.services.auth import hash_api_token
 
 mcp = FastMCP(
     name="Zeni",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=app_settings.mcp_allowed_hosts,
+        allowed_origins=app_settings.mcp_allowed_origins,
+    ),
     instructions=(
         "Zeni is a personal finance tracker. "
         "Use these tools to create and query transaction records on behalf of the authenticated user. "

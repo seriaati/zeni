@@ -27,5 +27,8 @@ class Settings(BaseSettings):
     recurring_interval_minutes: int = 60
     data_retention_interval_hours: int = 24
 
+    mcp_allowed_hosts: list[str] = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    mcp_allowed_origins: list[str] = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+
 
 settings = Settings()
