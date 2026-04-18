@@ -71,6 +71,7 @@ export function getInitials(name: string): string {
 export const CURRENCIES = [
   'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'AUD', 'CAD', 'CHF', 'HKD', 'SGD',
   'TWD', 'KRW', 'INR', 'BRL', 'MXN', 'SEK', 'NOK', 'DKK', 'NZD', 'ZAR',
+  'MYR',
 ];
 
 export const FREQUENCIES = [
