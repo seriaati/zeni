@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import base64
 import operator
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import Icon
 from sqlmodel import col, select
 
 from app.config import settings as app_settings
@@ -19,8 +22,21 @@ from app.models.user import User
 from app.models.wallet import Wallet
 from app.services.auth import hash_api_token
 
+_icons_dir = Path(__file__).parent / "icons"
+
+
+def _load_icon(filename: str, size: str) -> Icon:
+    data = base64.standard_b64encode((_icons_dir / filename).read_bytes()).decode()
+    return Icon(src=f"data:image/png;base64,{data}", mimeType="image/png", sizes=[size])
+
+
 mcp = FastMCP(
     name="Zeni",
+    icons=[
+        _load_icon("favicon-96x96.png", "96x96"),
+        _load_icon("icon-192.png", "192x192"),
+        _load_icon("icon-512.png", "512x512"),
+    ],
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=app_settings.mcp_allowed_hosts,
