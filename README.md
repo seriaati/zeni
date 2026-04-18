@@ -10,7 +10,7 @@ Zeni is built with privacy in mind. You can self-host with Docker Compose for fu
 
 ## Demo
 
-<https://github.com/seriaati/zeni/raw/refs/heads/main/assets/demo.mp4>
+<https://github.com/user-attachments/assets/28d2920a-3d04-40c7-b652-16b8c19a7fdb>
 
 ## Features
 
