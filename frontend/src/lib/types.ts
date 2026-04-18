@@ -90,7 +90,10 @@ export type ExpenseListResponse = TransactionListResponse;
 export interface TransactionSummary {
   total_amount: number;
   expense_count: number;
+  total_income: number;
+  income_count: number;
   by_category: { category_id: string; category_name: string; category_color: string | null; total: number; count: number }[];
+  income_by_category: { category_id: string; category_name: string; category_color: string | null; total: number; count: number }[];
   by_period: { period: string; total: number; count: number }[];
 }
 

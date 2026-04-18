@@ -316,51 +316,118 @@ export function DashboardPage() {
           )}
         </div>
 
-        {/* Category breakdown */}
-        <div>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Spending by category</h2>
-          {loading ? (
-            <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
-          ) : summary && summary.by_category.length > 0 ? (
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie
-                    data={summary.by_category}
-                    dataKey="total"
-                    nameKey="category_name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={72}
-                    paddingAngle={2}
-                  >
-                    {summary.by_category.map((cat, i) => (
-                      <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val) => fmt(Number(val), activeWallet.currency)}
-                    contentStyle={{ borderRadius: 8, border: '1px solid var(--cream-darker)', fontSize: 13 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                {summary.by_category.slice(0, 5).map((cat, i) => (
-                  <div key={cat.category_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
-                  </div>
-                ))}
+        {/* Charts column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Spending by category */}
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Spending by category</h2>
+            {loading ? (
+              <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
+            ) : summary && summary.by_category.length > 0 ? (
+              <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie
+                      data={summary.by_category}
+                      dataKey="total"
+                      nameKey="category_name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={72}
+                      paddingAngle={2}
+                    >
+                      {summary.by_category.map((cat, i) => (
+                        <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip total={summary.by_category.reduce((s, c) => s + c.total, 0)} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {(() => {
+                    const total = summary.by_category.reduce((s, c) => s + c.total, 0);
+                    return summary.by_category.slice(0, 5).map((cat, i) => (
+                      <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                        <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
+                        <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
+                      </div>
+                    ));
+                  })()}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
-              <p className="empty-state-desc">No data yet this month.</p>
+            ) : (
+              <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
+                <p className="empty-state-desc">No data yet this month.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Income by category */}
+          {(loading || (summary && summary.income_by_category.length > 0)) && (
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Income by category</h2>
+              {loading ? (
+                <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
+              ) : (
+                <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie
+                        data={summary!.income_by_category}
+                        dataKey="total"
+                        nameKey="category_name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={72}
+                        paddingAngle={2}
+                      >
+                        {summary!.income_by_category.map((cat, i) => (
+                          <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip total={summary!.income_by_category.reduce((s, c) => s + c.total, 0)} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                    {(() => {
+                      const total = summary!.income_by_category.reduce((s, c) => s + c.total, 0);
+                      return summary!.income_by_category.slice(0, 5).map((cat, i) => (
+                        <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                          <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{fmt(cat.total, activeWallet.currency)}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PieTooltip({ active, payload, total, currency }: { active?: boolean; payload?: { name: string; value: number; payload: { category_color: string | null } }[]; total: number; currency: string }) {
+  if (!active || !payload?.length) return null;
+  const { name, value, payload: { category_color } } = payload[0];
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, padding: '8px 12px', fontSize: 13, boxShadow: '0 2px 8px oklch(0% 0 0 / 0.08)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        {category_color && <div style={{ width: 8, height: 8, borderRadius: 2, background: category_color, flexShrink: 0 }} />}
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{name}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+        <span style={{ color: 'var(--ink)' }}>{fmt(value, currency)}</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{pct}%</span>
       </div>
     </div>
   );
