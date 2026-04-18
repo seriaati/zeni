@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Literal
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from datetime import timezone
 
 
 class ParsedTransaction(BaseModel):
@@ -144,6 +149,73 @@ Guidelines:
 - Do not make up transaction data that isn't in the context
 - Respond in plain text; do not use markdown formatting
 """
+
+
+def resolve_tz(tz_name: str) -> ZoneInfo | timezone:
+    try:
+        return ZoneInfo(tz_name)
+    except KeyError, ZoneInfoNotFoundError:
+        return UTC
+
+
+def build_parse_prompt(
+    *,
+    text: str | None,
+    categories: list[str],
+    tags: list[str],
+    timezone: str = "UTC",
+    custom_prompt: str | None = None,
+) -> str:
+    today = datetime.now(resolve_tz(timezone)).strftime("%Y-%m-%d")
+    category_list = ", ".join(categories) if categories else "Others"
+    tag_list = ", ".join(tags) if tags else ""
+
+    prompt = f"Today's date: {today}\nAvailable categories: {category_list}\n"
+    if tag_list:
+        prompt += f"Available tags: {tag_list}\n"
+    if custom_prompt:
+        prompt += f"Custom instructions: {custom_prompt}\n"
+    prompt += "\n"
+    prompt += (
+        f"User input: {text}" if text else "Please extract the transaction from the image above."
+    )
+    return prompt
+
+
+def build_chat_context_str(*, message: str, context: ChatContext) -> str:
+    by_category_lines = "\n".join(
+        f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} transactions)"
+        for row in context.by_category
+    )
+    by_month_lines = "\n".join(
+        f"  - {row['period']}: {row['total']:.2f} ({row['count']} transactions)"
+        for row in context.by_month
+    )
+    recent_lines = "\n".join(
+        f"  - {row['date']} | {row['category']} | {row['amount']:.2f} | {row['description']}"
+        for row in context.recent_expenses
+    )
+    wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
+    today = datetime.now(resolve_tz(context.timezone)).strftime("%Y-%m-%d")
+
+    return f"""\
+Financial data summary ({wallets_line}):
+- Today's date: {today}
+- Date range: {context.date_range}
+- Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
+- Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}
+- Net balance: {context.total_income - context.total_amount:.2f} {context.currency}
+
+Spending by category:
+{by_category_lines or "  (no data)"}
+
+Spending by month:
+{by_month_lines or "  (no data)"}
+
+Recent transactions (up to 10):
+{recent_lines or "  (no data)"}
+
+User question: {message}"""
 
 
 class LLMProvider(ABC):

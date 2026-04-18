@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import openai
 from openai.types.chat import (
@@ -17,6 +15,8 @@ from app.providers.base import (
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
+    build_chat_context_str,
+    build_parse_prompt,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -64,14 +64,6 @@ class OpenAICompatibleProvider(LLMProvider):
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
 
-        try:
-            tz = ZoneInfo(timezone)
-        except KeyError, ZoneInfoNotFoundError:
-            tz = UTC
-        today = datetime.now(tz).strftime("%Y-%m-%d")
-        category_list = ", ".join(categories) if categories else "Others"
-        tag_list = ", ".join(tags) if tags else ""
-
         parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam] = []
 
         if image_base64 and image_media_type:
@@ -82,18 +74,13 @@ class OpenAICompatibleProvider(LLMProvider):
                 )
             )
 
-        prompt_text = f"Today's date: {today}\nAvailable categories: {category_list}\n"
-        if tag_list:
-            prompt_text += f"Available tags: {tag_list}\n"
-        if custom_prompt:
-            prompt_text += f"Custom instructions: {custom_prompt}\n"
-        prompt_text += "\n"
-
-        if text:
-            prompt_text += f"User input: {text}"
-        else:
-            prompt_text += "Please extract the transaction from the image above."
-
+        prompt_text = build_parse_prompt(
+            text=text,
+            categories=categories,
+            tags=tags,
+            timezone=timezone,
+            custom_prompt=custom_prompt,
+        )
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 
         try:
@@ -120,44 +107,7 @@ class OpenAICompatibleProvider(LLMProvider):
         return parsed
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
-        by_category_lines = "\n".join(
-            f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} transactions)"
-            for row in context.by_category
-        )
-        by_month_lines = "\n".join(
-            f"  - {row['period']}: {row['total']:.2f} ({row['count']} transactions)"
-            for row in context.by_month
-        )
-        recent_lines = "\n".join(
-            f"  - {row['date']} | {row['category']} | {row['amount']:.2f} | {row['description']}"
-            for row in context.recent_expenses
-        )
-        wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
-
-        try:
-            tz = ZoneInfo(context.timezone)
-        except KeyError, ZoneInfoNotFoundError:
-            tz = UTC
-        today = datetime.now(tz).strftime("%Y-%m-%d")
-
-        data_context = f"""\
-Financial data summary ({wallets_line}):
-- Today's date: {today}
-- Date range: {context.date_range}
-- Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
-- Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}
-- Net balance: {context.total_income - context.total_amount:.2f} {context.currency}
-
-Spending by category:
-{by_category_lines or "  (no data)"}
-
-Spending by month:
-{by_month_lines or "  (no data)"}
-
-Recent transactions (up to 10):
-{recent_lines or "  (no data)"}
-
-User question: {message}"""
+        data_context = build_chat_context_str(message=message, context=context)
 
         try:
             response = await self._client.chat.completions.create(
