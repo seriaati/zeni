@@ -428,6 +428,21 @@ async def get_transaction_summary(
         by_category[t.category_id]["total"] += t.amount
         by_category[t.category_id]["count"] += 1
 
+    income_by_category: dict[uuid.UUID, dict] = {}
+    for t in income:
+        if t.category_id not in income_by_category:
+            cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
+            cat = cat_result.first()
+            income_by_category[t.category_id] = {
+                "category_id": str(t.category_id),
+                "category_name": cat.name if cat else "Unknown",
+                "category_color": cat.color if cat else None,
+                "total": 0.0,
+                "count": 0,
+            }
+        income_by_category[t.category_id]["total"] += t.amount
+        income_by_category[t.category_id]["count"] += 1
+
     by_period: dict[str, dict] = {}
     for t in expenses:
         period_key = t.date.strftime("%Y-%m")
@@ -442,6 +457,7 @@ async def get_transaction_summary(
         total_income=sum(t.amount for t in income),
         income_count=len(income),
         by_category=list(by_category.values()),
+        income_by_category=list(income_by_category.values()),
         by_period=sorted(by_period.values(), key=operator.itemgetter("period")),
     )
 

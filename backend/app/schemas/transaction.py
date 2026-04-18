@@ -88,4 +88,5 @@ class TransactionSummary(BaseModel):
     total_income: float
     income_count: int
     by_category: list[dict]
+    income_by_category: list[dict]
     by_period: list[dict]
