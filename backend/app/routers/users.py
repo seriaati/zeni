@@ -47,7 +47,7 @@ async def update_me(
         current_user.password_hash = hash_password(body.password)
     if body.timezone is not None:
         current_user.timezone = body.timezone
-    if body.custom_ai_prompt is not None:
+    if "custom_ai_prompt" in body.model_fields_set:
         current_user.custom_ai_prompt = body.custom_ai_prompt
 
     session.add(current_user)
