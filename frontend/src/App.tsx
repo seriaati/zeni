@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { OAuthAuthorizePage } from './pages/OAuthAuthorizePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { WalletsPage } from './pages/WalletsPage';
 import { WalletViewPage } from './pages/WalletViewPage';
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
       <Route
         path="/"
         element={
