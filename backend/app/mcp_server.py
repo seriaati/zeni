@@ -6,11 +6,10 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from mcp.server.auth.middleware.auth_context import get_access_token
-from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import Icon
@@ -19,12 +18,14 @@ from sqlmodel import col, select
 
 from app.config import settings as app_settings
 from app.database import get_session
-from app.models.api_token import APIToken
 from app.models.category import Category
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.services.auth import hash_api_token
+from app.services.mcp_oauth_provider import ZeniOAuthProvider
+
+if TYPE_CHECKING:
+    from app.services.mcp_oauth_provider import ZeniAccessToken
 
 _icons_dir = Path(__file__).parent / "icons"
 
@@ -34,29 +35,7 @@ def _load_icon(filename: str, size: str) -> Icon:
     return Icon(src=f"data:image/png;base64,{data}", mimeType="image/png", sizes=[size])
 
 
-class ZeniTokenVerifier(TokenVerifier):
-    async def verify_token(self, token: str) -> AccessToken | None:
-        token_hash = hash_api_token(token)
-        async for session in get_session():
-            result = await session.exec(select(APIToken).where(APIToken.token_hash == token_hash))
-            api_token = result.first()
-            if not api_token:
-                return None
-            if api_token.expires_at and api_token.expires_at < datetime.now(UTC):
-                return None
-            api_token.last_used = datetime.now(UTC)
-            session.add(api_token)
-            await session.commit()
-            return AccessToken(
-                token=token,
-                client_id=str(api_token.user_id),
-                scopes=["user"],
-                expires_at=(
-                    int(api_token.expires_at.timestamp()) if api_token.expires_at else None
-                ),
-            )
-        return None
-
+oauth_provider = ZeniOAuthProvider(frontend_url=app_settings.mcp_frontend_url)
 
 mcp = FastMCP(
     name="Zeni",
@@ -75,21 +54,26 @@ mcp = FastMCP(
         "Use these tools to create and query transaction records on behalf of the authenticated user. "
         "Authentication is handled via Bearer token in the Authorization header."
     ),
-    token_verifier=ZeniTokenVerifier(),
+    auth_server_provider=oauth_provider,
     auth=AuthSettings(
         issuer_url=AnyHttpUrl(app_settings.mcp_issuer_url),
         resource_server_url=AnyHttpUrl(app_settings.mcp_resource_server_url),
         required_scopes=["user"],
+        client_registration_options=ClientRegistrationOptions(
+            enabled=True, valid_scopes=["user"], default_scopes=["user"]
+        ),
+        revocation_options=RevocationOptions(enabled=True),
     ),
 )
 
 
 async def _get_authenticated_user() -> User:
-    access_token = get_access_token()
-    if not access_token:
+    raw_token = get_access_token()
+    if not raw_token:
         msg = "Not authenticated"
         raise ValueError(msg)
-    user_id = uuid.UUID(access_token.client_id)
+    access_token = cast("ZeniAccessToken", raw_token)
+    user_id = uuid.UUID(access_token.user_id)
     async for session in get_session():
         result = await session.exec(select(User).where(User.id == user_id))
         user = result.first()

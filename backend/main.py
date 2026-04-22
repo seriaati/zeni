@@ -17,6 +17,7 @@ from app.routers import (
     categories,
     chat,
     export,
+    oauth,
     recurring,
     tags,
     tokens,
@@ -74,6 +75,7 @@ app.include_router(recurring.router)
 app.include_router(budgets.router)
 app.include_router(export.router)
 app.include_router(tokens.router)
+app.include_router(oauth.router)
 
 app.mount("/mcp", mcp.sse_app())
 

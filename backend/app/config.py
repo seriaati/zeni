@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     mcp_allowed_origins: list[str] = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
     mcp_resource_server_url: str = "http://localhost:8000/mcp"
     mcp_issuer_url: str = "http://localhost:8000"
+    mcp_frontend_url: str = "http://localhost:5173"
 
 
 settings = Settings()
