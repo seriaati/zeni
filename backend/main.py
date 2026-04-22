@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from fastapi import FastAPI
+from fastapi import FastAPI, Request  # noqa: TC002
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from app.config import settings
 from app.mcp_server import mcp
@@ -28,7 +29,7 @@ from app.routers import (
 from app.services.scheduler import run_data_retention, run_recurring_transactions
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, MutableMapping
 
 
 @asynccontextmanager
@@ -77,7 +78,50 @@ app.include_router(export.router)
 app.include_router(tokens.router)
 app.include_router(oauth.router)
 
-app.mount("/mcp", mcp.sse_app())
+_mcp_app = mcp.sse_app()
+app.mount("/mcp", _mcp_app)
+
+
+async def _proxy_to_mcp(request: Request) -> Response:
+    """Forward root-level OAuth/well-known requests to the MCP sub-app."""
+    path = request.url.path
+    scope: dict[str, Any] = {
+        **request.scope,
+        "path": path,
+        "raw_path": path.encode(),
+        "root_path": "",
+    }
+
+    response_started: dict[str, Any] = {}
+    body_parts: list[bytes] = []
+
+    async def _send(message: MutableMapping[str, Any]) -> None:  # noqa: RUF029
+        if message["type"] == "http.response.start":
+            response_started["status"] = message["status"]
+            response_started["headers"] = message.get("headers", [])
+        elif message["type"] == "http.response.body":
+            body_parts.append(message.get("body", b""))
+
+    await _mcp_app(scope, request.receive, _send)  # type: ignore[arg-type]
+
+    status = int(response_started.get("status", 500))
+    raw_headers: list[tuple[bytes, bytes]] = response_started.get("headers", [])
+    headers = {k.decode(): v.decode() for k, v in raw_headers}
+    body = b"".join(body_parts)
+    return Response(content=body, status_code=status, headers=headers)
+
+
+_MCP_ROOT_PATHS = [
+    "/.well-known/oauth-authorization-server",
+    "/.well-known/oauth-protected-resource/mcp",
+    "/authorize",
+    "/token",
+    "/register",
+    "/revoke",
+]
+
+for _path in _MCP_ROOT_PATHS:
+    app.add_api_route(_path, _proxy_to_mcp, methods=["GET", "POST"])
 
 
 @app.get("/api/health")
