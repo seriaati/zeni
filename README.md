@@ -4,9 +4,11 @@
 
 [Official website](https://zeni.seria.moe) | [Hosted instance](https://app.zeni.seria.moe)
 
-Named after 銭, the Japanese word for "money", Zeni is a personal finance tracker built for people who want clarity without complexity. It removes the hassle of tracking your money, so you can focus on understanding it.
+Named after 銭, the Japanese word for "money", Zeni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort.
+It uses AI to take various kind of input (text, image, PDF, voice, etc.) and extract context about the transaction, then categorizes them for easier lookup in the future.
 
-Zeni is built with privacy in mind. You can self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).
+Zeni is built with privacy in mind. You can self-host with Docker Compose for full data control, or try it out for free with the hosted instance (data only stored for 2 weeks).
+For AI, Zeni uses BYOK (bring your own key) and does not come with any cloud AI models. However, you can easily get free API keys from [Google Gemini](https://aistudio.google.com/) or [OpenRouter](https://openrouter.ai/).
 
 ## Demo
 
@@ -14,7 +16,7 @@ Zeni is built with privacy in mind. You can self-host with Docker Compose for fu
 
 ## Features
 
-- **⌘ K to log anything**: One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.
+- **⌘ K to log anything**: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.
 - **Receipt & invoice scanning**: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
 - **Chat with your data**: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
 - **Model agnostic**: Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.
