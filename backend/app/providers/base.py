@@ -116,8 +116,12 @@ For "recurring" result_type:
 start date, use that. If unspecified: use the 1st of next month for monthly, next Monday for \
 weekly, tomorrow for daily, next year's current month/day for yearly
 
-Rules for each transaction item:
-- amount must be a positive number
+Rules for each transaction item (applies to every item in expenses[], group, and recurring):
+- amount MUST always be a strictly positive number — NEVER zero or negative under any \
+circumstances. Discounts, coupons, and promotional deductions must be subtracted directly \
+from the item's price to produce the net positive amount; do NOT create a separate line item \
+with a negative amount for a discount. For example, if an item costs 100 and has a -30 \
+discount, set amount = 70, not 100 with a separate -30 entry.
 - currency must be a 3-letter ISO currency code (e.g. "USD")
 - type: either "expense" or "income". Income examples: salary, bonus, refund, reimbursement, \
 cashback, gift received, freelance payment, dividend, interest received, rental income, \
@@ -131,12 +135,25 @@ specifically.
 - description should be concise (max 100 chars)
 - date: use ISO 8601 format YYYY-MM-DD; use today's date if not specified
 - ai_context: brief summary of what you extracted and why you chose the category
-- suggested_tags: FIRST check the provided tags list for relevant matches. Then, for any \
+- suggested_tags: applies to ALL result types (single, multiple, group children, group parent, \
+and recurring). FIRST check the provided tags list for relevant matches. Then, for any \
 concrete purchase (a product, service, or activity) OR income source (e.g. for salary: \
 "monthly", "recurring"; for freelance: "project", "client"; for dividends: "investment"), \
 you may also suggest new descriptive short tags that are NOT in the provided list. \
-One transaction can only have 3 tags in maximum, so if existing tags already match and the \
-maximum will be exceeded, don't suggest. Return an empty array if no tags are suggested.
+One transaction can only have 3 tags maximum, so if existing tags already match and the \
+maximum will be exceeded, don't suggest new ones. Return an empty array if no tags apply.
+- suggested_icon: only set this field when you are creating a NEW category (i.e. the \
+category_name is not in the provided categories list). Suggest a single icon name from the \
+following list that best represents the category. Use null if the category already exists or \
+no icon fits well. Available icons: \
+"shopping-cart", "utensils", "car", "train", "plane", "bus", "home", "heart", "pill", \
+"stethoscope", "dumbbell", "gamepad-2", "monitor", "smartphone", "laptop", "tv", \
+"music", "film", "book", "graduation-cap", "briefcase", "building-2", "coffee", \
+"beer", "wine", "pizza", "apple", "shirt", "scissors", "sparkles", "gift", \
+"banknote", "credit-card", "trending-up", "piggy-bank", "wallet", "receipt", \
+"zap", "wifi", "phone", "globe", "map-pin", "tree", "sun", "cloud", "umbrella", \
+"paw-print", "baby", "users", "party-popper", "ticket", "camera", "bike", \
+"fuel", "wrench", "hammer", "package", "truck", "star", "flame"
 """
 
 CHAT_SYSTEM_PROMPT = """\
