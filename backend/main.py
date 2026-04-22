@@ -119,8 +119,6 @@ async def _proxy_to_mcp(request: Request) -> Response:
             status,
             body.decode(errors="replace"),
         )
-    else:
-        logger.info("_proxy_to_mcp %s %s → %d", request.method, path, status)
     return Response(content=body, status_code=status, headers=headers)
 
 
