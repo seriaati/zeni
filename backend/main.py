@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None]:  # noqa: RUF029
+async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     scheduler = AsyncIOScheduler()
 
     scheduler.add_job(
@@ -53,7 +53,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:  # noqa: RUF029
     )
 
     scheduler.start()
-    yield
+    async with mcp.session_manager.run():
+        yield
     scheduler.shutdown(wait=True)
 
 
