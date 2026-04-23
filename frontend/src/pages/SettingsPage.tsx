@@ -444,7 +444,7 @@ function TokensTab({ toast }: { toast: (msg: string, type?: any) => void }) {
         <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
           <Key size={32} className="empty-state-icon" />
           <p className="empty-state-title">No API tokens</p>
-          <p className="empty-state-desc">Create tokens to connect external tools or AI assistants to your Zeni.</p>
+          <p className="empty-state-desc">Create tokens to connect external tools or AI assistants to your Keni.</p>
         </div>
       ) : (
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>

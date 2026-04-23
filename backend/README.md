@@ -1,3 +1,3 @@
-# Zeni's Backend
+# Keni's Backend
 
-This is the backend code for Zeni, a AI personal expense tracker. It is built with Python and FastAPI.
+This is the backend code for Keni, a AI personal expense tracker. It is built with Python and FastAPI.

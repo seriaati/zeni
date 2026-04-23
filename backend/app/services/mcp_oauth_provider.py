@@ -36,11 +36,11 @@ _TOKEN_TYPE_REFRESH = "refresh"  # noqa: S105
 _TOKEN_TYPE_BEARER = "Bearer"  # noqa: S105
 
 
-class ZeniAuthorizationCode(AuthorizationCode):
+class KeniAuthorizationCode(AuthorizationCode):
     db_id: uuid.UUID
 
 
-class ZeniAccessToken(AccessToken):
+class KeniAccessToken(AccessToken):
     user_id: str
 
 
@@ -79,7 +79,7 @@ def _client_to_sdk(db_client: OAuthClient) -> OAuthClientInformationFull:
     )
 
 
-class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
+class KeniOAuthProvider(OAuthAuthorizationServerProvider):
     def __init__(self, frontend_url: str) -> None:
         self._frontend_url = frontend_url
         self._pending_authorizations: dict[
@@ -137,7 +137,7 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
 
     async def load_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: str
-    ) -> ZeniAuthorizationCode | None:
+    ) -> KeniAuthorizationCode | None:
         async for session in get_session():
             result = await session.exec(
                 select(OAuthAuthorizationCode).where(
@@ -148,7 +148,7 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
             row = result.first()
             if row is None:
                 return None
-            return ZeniAuthorizationCode(
+            return KeniAuthorizationCode(
                 db_id=row.id,
                 code=row.code,
                 client_id=row.client_id,
@@ -164,7 +164,7 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
     async def exchange_authorization_code(
         self,
         client: OAuthClientInformationFull,  # noqa: ARG002
-        authorization_code: ZeniAuthorizationCode,
+        authorization_code: KeniAuthorizationCode,
     ) -> OAuthToken:
         now = datetime.now(UTC)
 
@@ -301,7 +301,7 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
             refresh_token=new_refresh_str,
         )
 
-    async def load_access_token(self, token: str) -> ZeniAccessToken | None:
+    async def load_access_token(self, token: str) -> KeniAccessToken | None:
         async for session in get_session():
             result = await session.exec(
                 select(OAuthTokenModel).where(
@@ -316,7 +316,7 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
             now = datetime.now(UTC)
             if db_token.expires_at.replace(tzinfo=UTC) < now:
                 return None
-            return ZeniAccessToken(
+            return KeniAccessToken(
                 token=token,
                 client_id=db_token.client_id,
                 scopes=db_token.scopes or [],
@@ -326,8 +326,8 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
             )
         return None
 
-    async def revoke_token(self, token: ZeniAccessToken | OAuthTokenModel) -> None:
-        if isinstance(token, ZeniAccessToken):
+    async def revoke_token(self, token: KeniAccessToken | OAuthTokenModel) -> None:
+        if isinstance(token, KeniAccessToken):
             token_hash = _hash_token(token.token)
             async for session in get_session():
                 result = await session.exec(

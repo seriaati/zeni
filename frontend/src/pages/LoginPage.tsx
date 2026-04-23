@@ -59,7 +59,7 @@ export function LoginPage() {
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logoSrc} alt="" width="28" height="28" style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Zeni</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Keni</span>
           </div>
         </div>
 
@@ -76,7 +76,7 @@ export function LoginPage() {
           </p>
           <p style={{ fontSize: 14, color: 'oklch(90% 0.04 155)', lineHeight: 1.6 }}>
             Type "coffee 4.50", snap a receipt, or just ask -<br />
-            Zeni understands. Record any transaction in seconds.
+            Keni understands. Record any transaction in seconds.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export function LoginPage() {
           </h1>
           <p style={{ fontSize: 14, color: 'var(--ink-light)', marginBottom: 32 }}>
             {mode === 'login'
-              ? 'Sign in to your Zeni instance'
+              ? 'Sign in to your Keni instance'
               : 'Set up your personal finance tracker'}
           </p>
 

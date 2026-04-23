@@ -8,7 +8,7 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_parse_none_str="null"
     )
 
-    database_url: str = "postgresql+asyncpg://zeni:zeni@localhost:5432/zeni"
+    database_url: str = "postgresql+asyncpg://keni:keni@localhost:5432/keni"
     secret_key: str = "change-me-in-production"  # noqa: S105
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30

@@ -18,7 +18,7 @@ from app.services.auth import verify_password
 if TYPE_CHECKING:
     import uuid
 
-    from app.services.mcp_oauth_provider import ZeniOAuthProvider
+    from app.services.mcp_oauth_provider import KeniOAuthProvider
 
 router = APIRouter(prefix="/api/oauth", tags=["oauth"])
 
@@ -48,7 +48,7 @@ class _AuthCodeParams:
     resource: str | None
 
 
-def _get_provider() -> ZeniOAuthProvider:
+def _get_provider() -> KeniOAuthProvider:
     from app.mcp_server import oauth_provider  # noqa: PLC0415
 
     return oauth_provider

@@ -36,7 +36,7 @@ export function AdminPage() {
           <Shield size={20} style={{ color: 'var(--forest)' }} />
           <h1 className="page-title" style={{ margin: 0 }}>Admin Settings</h1>
         </div>
-        <p className="page-subtitle">Instance-level configuration for your Zeni server</p>
+        <p className="page-subtitle">Instance-level configuration for your Keni server</p>
       </div>
 
       {loading ? (

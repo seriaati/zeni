@@ -1,3 +1,3 @@
-# Zeni's Website
+# Keni's Website
 
 Built with Astro and Tailwind CSS.

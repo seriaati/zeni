@@ -85,7 +85,7 @@ export function Layout() {
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo">
             <img src={logoSrc} alt="" className="sidebar-logo-img" />
-            <span className="sidebar-logo-name">Zeni</span>
+            <span className="sidebar-logo-name">Keni</span>
           </Link>
         </div>
 
@@ -200,7 +200,7 @@ export function Layout() {
           </button>
           <Link to="/" className="sidebar-logo mobile-header-logo">
             <img src={logoSrc} alt="" className="sidebar-logo-img" />
-            <span className="sidebar-logo-name">Zeni</span>
+            <span className="sidebar-logo-name">Keni</span>
           </Link>
           <div className="icon-btn icon-btn-lg" style={{ visibility: 'hidden' }} />
         </header>

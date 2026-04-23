@@ -3,31 +3,31 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: zeni
-      POSTGRES_PASSWORD: zeni
-      POSTGRES_DB: zeni
+      POSTGRES_USER: keni
+      POSTGRES_PASSWORD: keni
+      POSTGRES_DB: keni
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U zeni"]
+      test: ["CMD-SHELL", "pg_isready -U keni"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   backend:
-    image: ghcr.io/seriaati/zeni/backend:latest
+    image: ghcr.io/seriaati/keni/backend:latest
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://zeni:zeni@db:5432/zeni
+      DATABASE_URL: postgresql+asyncpg://keni:keni@db:5432/keni
       SECRET_KEY: change-me-in-production-use-a-long-random-string
       CORS_ORIGINS: '["http://localhost"]'
       SIGNUPS_ENABLED: "true"
 
   frontend:
-    image: ghcr.io/seriaati/zeni/frontend:latest
+    image: ghcr.io/seriaati/keni/frontend:latest
     restart: unless-stopped
     depends_on:
       - backend

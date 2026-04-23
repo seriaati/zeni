@@ -4,7 +4,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project
 
-Zeni frontend — React 19 + TypeScript + Vite SPA (personal finance tracker). Backend is a separate Python/FastAPI service.
+Keni frontend — React 19 + TypeScript + Vite SPA (personal finance tracker). Backend is a separate Python/FastAPI service.
 
 ## Package Manager
 

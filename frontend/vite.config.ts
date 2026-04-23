@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'favicon-96x96.png'],
       manifest: {
-        name: 'Zeni',
-        short_name: 'Zeni',
+        name: 'Keni',
+        short_name: 'Keni',
         description: 'A personal finance tracker built for people who want clarity without complexity.',
         theme_color: '#F9F5EC',
         background_color: '#F9F5EC',

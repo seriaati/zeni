@@ -1,14 +1,14 @@
-![Zeni: Money tracked without the friction](./assets/readme-banner.png)
+![Keni: Money tracked without the friction](./assets/readme-banner.png)
 
-# Zeni
+# Keni
 
-[Official website](https://zeni.seria.moe) | [Hosted instance](https://app.zeni.seria.moe)
+[Official website](https://keni.seria.moe) | [Hosted instance](https://app.keni.seria.moe)
 
-Named after 銭, the Japanese word for "money", Zeni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort.
+Keni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort.
 It uses AI to take various kind of input (text, image, PDF, voice, etc.) and extract context about the transaction, then categorizes them for easier lookup in the future.
 
-Zeni is built with privacy in mind. You can self-host with Docker Compose for full data control, or try it out for free with the hosted instance (data only stored for 2 weeks).
-For AI, Zeni uses BYOK (bring your own key) and does not come with any cloud AI models. However, you can easily get free API keys from [Google Gemini](https://aistudio.google.com/) or [OpenRouter](https://openrouter.ai/).
+Keni is built with privacy in mind. You can self-host with Docker Compose for full data control, or try it out for free with the hosted instance (data only stored for 2 weeks).
+For AI, Keni uses BYOK (bring your own key) and does not come with any cloud AI models. However, you can easily get free API keys from [Google Gemini](https://aistudio.google.com/) or [OpenRouter](https://openrouter.ai/).
 
 ## Demo
 
@@ -16,14 +16,14 @@ For AI, Zeni uses BYOK (bring your own key) and does not come with any cloud AI 
 
 ## Features
 
-- **⌘ K to log anything**: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.
+- **⌘ K to log anything**: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Keni infers context, categorizes with high detail, and fills in the blanks.
 - **Receipt & invoice scanning**: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
 - **Chat with your data**: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
-- **Model agnostic**: Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.
+- **Model agnostic**: Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.
 - **Voice input**: Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.
 - **Multiple wallets**: Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.
 - **Categories & tags**: Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.
-- **MCP & API**: Connect Zeni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
+- **MCP & API**: Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
 - **Budgets**: Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.
 - **Dashboard analytics**: Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.
 
@@ -33,7 +33,7 @@ Requirements: [Docker](https://docs.docker.com/get-docker/).
 
 1. Create a new folder and copy the [`docker-compose.yml`](docker-compose.yml) file into it.
 2. Run `docker compose up -d`.
-3. Open `http://localhost` and create your account, enjoy tracking your money with Zeni!
+3. Open `http://localhost` and create your account, enjoy tracking your money with Keni!
 
 ### Configuration
 

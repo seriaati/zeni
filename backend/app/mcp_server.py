@@ -22,10 +22,10 @@ from app.models.category import Category
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.services.mcp_oauth_provider import ZeniOAuthProvider
+from app.services.mcp_oauth_provider import KeniOAuthProvider
 
 if TYPE_CHECKING:
-    from app.services.mcp_oauth_provider import ZeniAccessToken
+    from app.services.mcp_oauth_provider import KeniAccessToken
 
 _icons_dir = Path(__file__).parent / "icons"
 
@@ -35,10 +35,10 @@ def _load_icon(filename: str, size: str) -> Icon:
     return Icon(src=f"data:image/png;base64,{data}", mimeType="image/png", sizes=[size])
 
 
-oauth_provider = ZeniOAuthProvider(frontend_url=app_settings.mcp_frontend_url)
+oauth_provider = KeniOAuthProvider(frontend_url=app_settings.mcp_frontend_url)
 
 mcp = FastMCP(
-    name="Zeni",
+    name="Keni",
     icons=[
         _load_icon("favicon-96x96.png", "96x96"),
         _load_icon("icon-192.png", "192x192"),
@@ -50,7 +50,7 @@ mcp = FastMCP(
         allowed_origins=app_settings.mcp_allowed_origins,
     ),
     instructions=(
-        "Zeni is a personal finance tracker. "
+        "Keni is a personal finance tracker. "
         "Use these tools to create and query transaction records on behalf of the authenticated user. "
         "Authentication is handled via Bearer token in the Authorization header."
     ),
@@ -72,7 +72,7 @@ async def _get_authenticated_user() -> User:
     if not raw_token:
         msg = "Not authenticated"
         raise ValueError(msg)
-    access_token = cast("ZeniAccessToken", raw_token)
+    access_token = cast("KeniAccessToken", raw_token)
     user_id = uuid.UUID(access_token.user_id)
     async for session in get_session():
         result = await session.exec(select(User).where(User.id == user_id))

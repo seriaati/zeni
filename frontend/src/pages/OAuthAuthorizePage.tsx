@@ -124,7 +124,7 @@ export function OAuthAuthorizePage() {
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logoSrc} alt="" width="28" height="28" style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Zeni</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Keni</span>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export function OAuthAuthorizePage() {
           </p>
           <p style={{ fontSize: 14, color: 'oklch(90% 0.04 155)', lineHeight: 1.6 }}>
             Grant access to a connected application<br />
-            using your Zeni account.
+            using your Keni account.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export function OAuthAuthorizePage() {
                 Hi, {currentUser.display_name ?? currentUser.username}
               </h1>
               <p style={{ fontSize: 14, color: 'var(--ink-light)', marginBottom: 24 }}>
-                <strong style={{ color: 'var(--ink)' }}>{clientName}</strong> is requesting access to your Zeni account.
+                <strong style={{ color: 'var(--ink)' }}>{clientName}</strong> is requesting access to your Keni account.
               </p>
 
               <div style={{
@@ -259,7 +259,7 @@ export function OAuthAuthorizePage() {
                 Sign in to authorize
               </h1>
               <p style={{ fontSize: 14, color: 'var(--ink-light)', marginBottom: 24 }}>
-                <strong style={{ color: 'var(--ink)' }}>{clientName}</strong> is requesting access to your Zeni account.
+                <strong style={{ color: 'var(--ink)' }}>{clientName}</strong> is requesting access to your Keni account.
               </p>
 
               <div style={{

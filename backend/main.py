@@ -58,7 +58,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     scheduler.shutdown(wait=True)
 
 
-app = FastAPI(title="Zeni API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Keni API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

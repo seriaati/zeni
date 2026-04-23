@@ -1,25 +1,25 @@
 {
   "site": {
-    "title": "Zeni | Money tracked without the friction",
+    "title": "Keni | Money tracked without the friction",
     "description": "A personal finance tracker built for people who want clarity without complexity. It removes the hassle of tracking your money, so you can focus on understanding it.",
-    "appUrl": "https://app.zeni.seria.moe"
+    "appUrl": "https://app.keni.seria.moe"
   },
   "nav": {
-    "logo": "Zeni",
+    "logo": "Keni",
     "features": "Features",
     "privacy": "Privacy",
     "cta": "Get started"
   },
   "footer": {
-    "brand": "Zeni",
+    "brand": "Keni",
     "tagline": "Money tracked without the friction."
   },
   "hero": {
     "eyebrow": "Personal finance tracker",
     "headline": "Money tracked",
     "headlineEm": "without the friction.",
-    "sub": "Type \"coffee 4.50\", snap a receipt, or just ask - Zeni understands. Record any transaction in seconds.",
-    "ctaPrimary": "Try Zeni free",
+    "sub": "Type \"coffee 4.50\", snap a receipt, or just ask - Keni understands. Record any transaction in seconds.",
+    "ctaPrimary": "Try Keni free",
     "ctaGhost": "See features ↓",
     "mockup": {
       "cmdText": "lunch with team 38",
@@ -52,7 +52,7 @@
     "commandBar": {
       "tag": "AI-powered",
       "title": "⌘ K to log anything",
-      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Zeni infers context, categorizes with high detail, and fills in the blanks.",
+      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Keni infers context, categorizes with high detail, and fills in the blanks.",
       "list": [
         "AI infers context and categorizes automatically",
         "High-detail categorization with tags",
@@ -80,7 +80,7 @@
     },
     "models": {
       "title": "Model agnostic",
-      "body": "Bring your own API key. Zeni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.",
+      "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.",
       "detail": "OpenAI · Anthropic · Google Gemini · OpenRouter"
     },
     "voice": {
@@ -103,7 +103,7 @@
     },
     "mcp": {
       "title": "MCP & API",
-      "body": "Connect Zeni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.",
+      "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.",
       "detail": "MCP server · REST API · Bring your own agents"
     },
     "budgets": {
@@ -144,7 +144,7 @@
     "tag": "Open source · Self-hosted",
     "title": "Your data stays",
     "titleEm": "yours.",
-    "sub": "Self-host Zeni so all your personal finance data lives on your own disk. No tracking, no ads, and no subscription fees.",
+    "sub": "Self-host Keni so all your personal finance data lives on your own disk. No tracking, no ads, and no subscription fees.",
     "checklist": [
       "All data stored locally on your own server",
       "Bring your own AI provider - OpenAI, Anthropic, Gemini, OpenRouter",

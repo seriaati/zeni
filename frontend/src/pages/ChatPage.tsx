@@ -63,7 +63,7 @@ export function ChatPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - var(--header-height) - 80px)', maxWidth: 720, margin: '0 auto' }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 className="page-title">Chat with Zeni</h1>
+        <h1 className="page-title">Chat with Keni</h1>
         <p className="page-subtitle">Ask questions about your spending in plain language</p>
       </div>
 
