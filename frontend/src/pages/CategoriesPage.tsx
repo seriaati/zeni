@@ -11,99 +11,27 @@ const PRESET_COLORS = [
   '#5a9ea8', '#b07060', '#7a8f9a', '#8a7060', '#a89050',
 ];
 
-export function CategoriesPage() {
-  const toast = useToast();
-  const [categories, setCategories] = useState<CategoryResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [editCat, setEditCat] = useState<CategoryResponse | null>(null);
-  const [deleteCat, setDeleteCat] = useState<CategoryResponse | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [iconSearch, setIconSearch] = useState('');
+type FormState = {
+  name: string;
+  icon: string;
+  color: string | null;
+  type: 'expense' | 'income';
+};
 
-  const [form, setForm] = useState<{
-    name: string;
-    icon: string;
-    color: string | null;
-    type: 'expense' | 'income';
-  }>({
-    name: '',
-    icon: '',
-    color: null,
-    type: 'expense',
-  });
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      setCategories(await categoriesApi.list());
-    } catch {
-      toast('Failed to load', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const openCreate = () => {
-    setForm({ name: '', icon: '', color: null, type: 'expense' });
-    setIconSearch('');
-    setShowCreate(true);
-  };
-
-  const openEdit = (c: CategoryResponse) => {
-    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null, type: c.type });
-    setIconSearch('');
-    setEditCat(c);
-  };
-
-  const filteredIcons = useMemo(() => {
-    const q = iconSearch.trim().toLowerCase();
-    if (!q) return CATEGORY_ICONS;
-    return CATEGORY_ICONS.filter(({ label, name }) =>
-      label.toLowerCase().includes(q) || name.toLowerCase().includes(q)
-    );
-  }, [iconSearch]);
-
-  const handleSave = async () => {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    try {
-      const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined, type: form.type };
-      if (editCat) {
-        await categoriesApi.update(editCat.id, data);
-        toast('Category updated', 'success');
-        setEditCat(null);
-      } else {
-        await categoriesApi.create(data);
-        toast('Category created', 'success');
-        setShowCreate(false);
-      }
-      await load();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteCat) return;
-    setSaving(true);
-    try {
-      await categoriesApi.delete(deleteCat.id);
-      toast('Category deleted — expenses moved to Others', 'success');
-      setDeleteCat(null);
-      await load();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const CategoryForm = () => (
+function CategoryForm({
+  form,
+  setForm,
+  iconSearch,
+  setIconSearch,
+  filteredIcons,
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  iconSearch: string;
+  setIconSearch: (v: string) => void;
+  filteredIcons: typeof CATEGORY_ICONS;
+}) {
+  return (
     <>
       <div className="input-group">
         <label className="input-label">Name</label>
@@ -220,6 +148,94 @@ export function CategoriesPage() {
       </div>
     </>
   );
+}
+
+export function CategoriesPage() {
+  const toast = useToast();
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editCat, setEditCat] = useState<CategoryResponse | null>(null);
+  const [deleteCat, setDeleteCat] = useState<CategoryResponse | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
+
+  const [form, setForm] = useState<FormState>({
+    name: '',
+    icon: '',
+    color: null,
+    type: 'expense',
+  });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      setCategories(await categoriesApi.list());
+    } catch {
+      toast('Failed to load', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openCreate = () => {
+    setForm({ name: '', icon: '', color: null, type: 'expense' });
+    setIconSearch('');
+    setShowCreate(true);
+  };
+
+  const openEdit = (c: CategoryResponse) => {
+    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null, type: c.type });
+    setIconSearch('');
+    setEditCat(c);
+  };
+
+  const filteredIcons = useMemo(() => {
+    const q = iconSearch.trim().toLowerCase();
+    if (!q) return CATEGORY_ICONS;
+    return CATEGORY_ICONS.filter(({ label, name }) =>
+      label.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+    );
+  }, [iconSearch]);
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined, type: form.type };
+      if (editCat) {
+        await categoriesApi.update(editCat.id, data);
+        toast('Category updated', 'success');
+        setEditCat(null);
+      } else {
+        await categoriesApi.create(data);
+        toast('Category created', 'success');
+        setShowCreate(false);
+      }
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteCat) return;
+    setSaving(true);
+    try {
+      await categoriesApi.delete(deleteCat.id);
+      toast('Category deleted — expenses moved to Others', 'success');
+      setDeleteCat(null);
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const expense = categories.filter((c) => c.type === 'expense');
   const income = categories.filter((c) => c.type === 'income');
@@ -292,7 +308,13 @@ export function CategoriesPage() {
           </>
         }
       >
-        <CategoryForm />
+        <CategoryForm
+          form={form}
+          setForm={setForm}
+          iconSearch={iconSearch}
+          setIconSearch={setIconSearch}
+          filteredIcons={filteredIcons}
+        />
       </Modal>
 
       <Modal
