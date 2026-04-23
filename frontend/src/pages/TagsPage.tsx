@@ -3,12 +3,8 @@ import { Plus, Pencil, Trash2, Tags } from 'lucide-react';
 import { tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
+import { ColorPicker } from '../components/ui/ColorPicker';
 import type { TagResponse } from '../lib/types';
-
-const PRESET_COLORS = [
-  null, '#7a9e7e', '#6b8fba', '#b8895a', '#b06b7a', '#8b6fa8',
-  '#5a9ea8', '#b07060', '#7a8f9a', '#8a7060', '#a89050',
-];
 
 export function TagsPage() {
   const toast = useToast();
@@ -94,33 +90,7 @@ export function TagsPage() {
       </div>
       <div className="input-group">
         <label className="input-label">Color</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {PRESET_COLORS.map((color, i) => (
-            <button
-              key={i}
-              onClick={() => setForm({ ...form, color })}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: color ?? 'white',
-                border: `3px solid ${form.color === color ? 'var(--ink)' : color === null ? 'var(--cream-darker)' : 'transparent'}`,
-                cursor: 'pointer',
-                outline: form.color === color ? '2px solid white' : 'none',
-                outlineOffset: '-4px',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {color === null && (
-                <span style={{
-                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, color: 'var(--ink-faint)', fontWeight: 700, lineHeight: 1,
-                }}>∅</span>
-              )}
-            </button>
-          ))}
-        </div>
+        <ColorPicker value={form.color} onChange={(color) => setForm({ ...form, color })} />
       </div>
     </>
   );
