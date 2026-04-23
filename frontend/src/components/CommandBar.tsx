@@ -841,39 +841,39 @@ function GroupReview({
               <ChevronRight size={15} />
             </button>
           </div>
-
-          {sumMismatch && !error && (
-            <div style={{ fontSize: 12, color: 'var(--rose)', background: 'var(--rose-light)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span>Items sum ({fmt(itemsSum, activeWalletCurrency ?? parent.currency ?? 'USD')}) must equal group total ({fmt(parentTotal, activeWalletCurrency ?? parent.currency ?? 'USD')})</span>
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}
-                onClick={() => {
-                  const diff = Math.round((parentTotal - itemsSum) * 100) / 100;
-                  onChangeItems([
-                    ...items,
-                    makeEditable({
-                      amount: diff,
-                      currency: parent.currency,
-                      category_name: 'Tax rounding',
-                      is_new_category: true,
-                      description: 'Rounding adjustment',
-                      date: parent.date,
-                      ai_context: null,
-                      suggested_tags: [],
-                      suggested_icon: null,
-                      type: 'expense',
-                    }),
-                  ]);
-                  setActiveIndex(items.length);
-                  setShowItems(true);
-                }}
-              >
-                Add {fmt(Math.round((parentTotal - itemsSum) * 100) / 100, activeWalletCurrency ?? parent.currency ?? 'USD')} adjustment
-              </button>
-            </div>
-          )}
         </>
+      )}
+
+      {sumMismatch && !error && (
+        <div style={{ fontSize: 12, color: 'var(--rose)', background: 'var(--rose-light)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span>Items sum ({fmt(itemsSum, activeWalletCurrency ?? parent.currency ?? 'USD')}) must equal group total ({fmt(parentTotal, activeWalletCurrency ?? parent.currency ?? 'USD')})</span>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: 11, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => {
+              const diff = Math.round((parentTotal - itemsSum) * 100) / 100;
+              onChangeItems([
+                ...items,
+                makeEditable({
+                  amount: diff,
+                  currency: parent.currency,
+                  category_name: 'Tax rounding',
+                  is_new_category: true,
+                  description: 'Rounding adjustment',
+                  date: parent.date,
+                  ai_context: null,
+                  suggested_tags: [],
+                  suggested_icon: null,
+                  type: 'expense',
+                }),
+              ]);
+              setActiveIndex(items.length);
+              setShowItems(true);
+            }}
+          >
+            Add {fmt(Math.round((parentTotal - itemsSum) * 100) / 100, activeWalletCurrency ?? parent.currency ?? 'USD')} adjustment
+          </button>
+        </div>
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
