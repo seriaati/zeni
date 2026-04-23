@@ -100,10 +100,8 @@ For "group" result_type:
 - The `expenses` list contains the individual sub-transactions (children)
 - The parent amount must equal the sum of children amounts
 - For receipts showing pre-tax prices (e.g. Japanese receipts with consumption tax applied to \
-the total): set each item's amount to its after-tax price (pre-tax * tax_rate), then if the \
-sum of rounded item amounts does not equal the receipt total due to decimal rounding, add a \
-final line item with category_name "Tax rounding", description "Rounding adjustment", and \
-amount = receipt_total - sum_of_items (this will be a small positive or negative value)
+the total): set each item's amount to its after-tax price (pre-tax * tax_rate); the frontend \
+will automatically handle any rounding discrepancy between the sum of items and the receipt total
 
 For "single" and "multiple":
 - The `group` field must be null
