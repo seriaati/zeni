@@ -197,7 +197,6 @@ async def _create_single_transaction(
 def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransactionItem:
     return AITransactionItem(
         amount=parsed.amount,
-        currency=parsed.currency,
         category_name=parsed.category_name,
         is_new_category=parsed.is_new_category,
         description=parsed.description,
@@ -260,7 +259,6 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
         group = AITransactionGroupInfo(
             description=g.description,
             amount=g.amount,
-            currency=g.currency,
             category_name=g.category_name,
             is_new_category=g.is_new_category,
             date=g.date,
@@ -275,7 +273,6 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
         r = parsed.recurring
         recurring = AIRecurringItem(
             amount=r.amount,
-            currency=r.currency,
             category_name=r.category_name,
             is_new_category=r.is_new_category,
             description=r.description,
@@ -330,7 +327,6 @@ async def create_transaction_voice(
         group = AITransactionGroupInfo(
             description=g.description,
             amount=g.amount,
-            currency=g.currency,
             category_name=g.category_name,
             is_new_category=g.is_new_category,
             date=g.date,
@@ -345,7 +341,6 @@ async def create_transaction_voice(
         r = parsed.recurring
         voice_recurring = AIRecurringItem(
             amount=r.amount,
-            currency=r.currency,
             category_name=r.category_name,
             is_new_category=r.is_new_category,
             description=r.description,

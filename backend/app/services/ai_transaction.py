@@ -42,7 +42,6 @@ class SuggestedTagResult:
 @dataclass
 class ParsedTransactionResult:
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     description: str
@@ -57,7 +56,6 @@ class ParsedTransactionResult:
 class ParsedGroupResult:
     description: str
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     date: str
@@ -70,7 +68,6 @@ class ParsedGroupResult:
 @dataclass
 class ParsedRecurringResult:
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     description: str
@@ -245,7 +242,6 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
         ]
         return ParsedRecurringResult(
             amount=parsed_rec.amount,
-            currency=parsed_rec.currency,
             category_name=parsed_rec.category_name,
             is_new_category=is_new,
             description=parsed_rec.description,
@@ -265,7 +261,6 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
         ]
         return ParsedTransactionResult(
             amount=parsed_txn.amount,
-            currency=parsed_txn.currency,
             category_name=parsed_txn.category_name,
             is_new_category=is_new,
             description=parsed_txn.description,
@@ -289,7 +284,6 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
         enriched_group = ParsedGroupResult(
             description=g.description,
             amount=g.amount,
-            currency=g.currency,
             category_name=g.category_name,
             is_new_category=is_new,
             date=g.date,

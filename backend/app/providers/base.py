@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 class ParsedTransaction(BaseModel):
     amount: float
-    currency: str
     category_name: str
     description: str
     date: str
@@ -28,7 +27,6 @@ class ParsedTransaction(BaseModel):
 class ParsedTransactionGroupInfo(BaseModel):
     description: str
     amount: float
-    currency: str
     category_name: str
     date: str
     ai_context: str
@@ -39,7 +37,6 @@ class ParsedTransactionGroupInfo(BaseModel):
 
 class ParsedRecurringTransaction(BaseModel):
     amount: float
-    currency: str
     category_name: str
     description: str
     frequency: str
@@ -126,7 +123,6 @@ circumstances. Discounts, coupons, and promotional deductions must be subtracted
 from the item's price to produce the net positive amount; do NOT create a separate line item \
 with a negative amount for a discount. For example, if an item costs 100 and has a -30 \
 discount, set amount = 70, not 100 with a separate -30 entry.
-- currency must be a 3-letter ISO currency code (e.g. "USD")
 - type: either "expense" or "income". Income examples: salary, bonus, refund, reimbursement, \
 cashback, gift received, freelance payment, dividend, interest received, rental income, \
 commission, allowance, pension, grant, prize, side income. Default to "expense" if unclear.

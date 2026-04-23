@@ -39,7 +39,6 @@ class SuggestedTag(BaseModel):
 
 class AITransactionItem(BaseModel):
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     description: str
@@ -53,7 +52,6 @@ class AITransactionItem(BaseModel):
 class AITransactionGroupInfo(BaseModel):
     description: str
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     date: str
@@ -65,7 +63,6 @@ class AITransactionGroupInfo(BaseModel):
 
 class AIRecurringItem(BaseModel):
     amount: float
-    currency: str
     category_name: str
     is_new_category: bool
     description: str
