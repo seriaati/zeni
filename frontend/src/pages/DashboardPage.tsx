@@ -30,6 +30,8 @@ export function DashboardPage() {
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
+  const [incomeCategoryExpanded, setIncomeCategoryExpanded] = useState(false);
 
   useEffect(() => {
     if (!activeWallet) return;
@@ -324,40 +326,52 @@ export function DashboardPage() {
             {loading ? (
               <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
             ) : summary && summary.by_category.length > 0 ? (
-              <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
-                <ResponsiveContainer width="100%" height={160}>
-                  <PieChart>
-                    <Pie
-                      data={summary.by_category}
-                      dataKey="total"
-                      nameKey="category_name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={72}
-                      paddingAngle={2}
-                    >
-                      {summary.by_category.map((cat, i) => (
-                        <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+              (() => {
+                const sorted = [...summary.by_category].sort((a, b) => b.total - a.total);
+                const total = sorted.reduce((s, c) => s + c.total, 0);
+                const displayed = categoryExpanded ? sorted : sorted.slice(0, 3);
+                return (
+                  <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <PieChart>
+                        <Pie
+                          data={sorted}
+                          dataKey="total"
+                          nameKey="category_name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={72}
+                          paddingAngle={2}
+                        >
+                          {sorted.map((cat, i) => (
+                            <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                      {displayed.map((cat, i) => (
+                        <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                          <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip content={<PieTooltip total={summary.by_category.reduce((s, c) => s + c.total, 0)} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                  {(() => {
-                    const total = summary.by_category.reduce((s, c) => s + c.total, 0);
-                    return summary.by_category.slice(0, 5).map((cat, i) => (
-                      <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
-                        <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
-                        <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
+                      {sorted.length > 3 && (
+                        <button
+                          onClick={() => setCategoryExpanded((v) => !v)}
+                          style={{ alignSelf: 'flex-start', marginTop: 2, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 500 }}
+                        >
+                          {categoryExpanded ? 'Show less' : `+${sorted.length - 3} more`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
                 <p className="empty-state-desc">No data yet this month.</p>
@@ -372,40 +386,52 @@ export function DashboardPage() {
               {loading ? (
                 <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
               ) : (
-                <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <PieChart>
-                      <Pie
-                        data={summary!.income_by_category}
-                        dataKey="total"
-                        nameKey="category_name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={72}
-                        paddingAngle={2}
-                      >
-                        {summary!.income_by_category.map((cat, i) => (
-                          <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                (() => {
+                  const sorted = [...summary!.income_by_category].sort((a, b) => b.total - a.total);
+                  const total = sorted.reduce((s, c) => s + c.total, 0);
+                  const displayed = incomeCategoryExpanded ? sorted : sorted.slice(0, 3);
+                  return (
+                    <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <PieChart>
+                          <Pie
+                            data={sorted}
+                            dataKey="total"
+                            nameKey="category_name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={72}
+                            paddingAngle={2}
+                          >
+                            {sorted.map((cat, i) => (
+                              <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                        {displayed.map((cat, i) => (
+                          <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                            <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
+                            <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{fmt(cat.total, activeWallet.currency)}</span>
+                          </div>
                         ))}
-                      </Pie>
-                      <Tooltip content={<PieTooltip total={summary!.income_by_category.reduce((s, c) => s + c.total, 0)} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                    {(() => {
-                      const total = summary!.income_by_category.reduce((s, c) => s + c.total, 0);
-                      return summary!.income_by_category.slice(0, 5).map((cat, i) => (
-                        <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
-                          <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
-                          <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{fmt(cat.total, activeWallet.currency)}</span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
+                        {sorted.length > 3 && (
+                          <button
+                            onClick={() => setIncomeCategoryExpanded((v) => !v)}
+                            style={{ alignSelf: 'flex-start', marginTop: 2, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 500 }}
+                          >
+                            {incomeCategoryExpanded ? 'Show less' : `+${sorted.length - 3} more`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
               )}
             </div>
           )}
