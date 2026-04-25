@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Layers, Wallet } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -343,11 +343,19 @@ export function DashboardPage() {
                           innerRadius={45}
                           outerRadius={72}
                           paddingAngle={2}
-                        >
-                          {sorted.map((cat, i) => (
-                            <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                          ))}
-                        </Pie>
+                          shape={(props, index) => (
+                            <Sector
+                              cx={props.cx}
+                              cy={props.cy}
+                              innerRadius={props.innerRadius}
+                              outerRadius={props.outerRadius}
+                              startAngle={props.startAngle}
+                              endAngle={props.endAngle}
+                              cornerRadius={props.cornerRadius}
+                              fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                            />
+                          )}
+                        />
                         <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -403,11 +411,19 @@ export function DashboardPage() {
                             innerRadius={45}
                             outerRadius={72}
                             paddingAngle={2}
-                          >
-                            {sorted.map((cat, i) => (
-                              <Cell key={i} fill={cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                            ))}
-                          </Pie>
+                            shape={(props, index) => (
+                              <Sector
+                                cx={props.cx}
+                                cy={props.cy}
+                                innerRadius={props.innerRadius}
+                                outerRadius={props.outerRadius}
+                                startAngle={props.startAngle}
+                                endAngle={props.endAngle}
+                                cornerRadius={props.cornerRadius}
+                                fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                              />
+                            )}
+                          />
                           <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
                         </PieChart>
                       </ResponsiveContainer>
