@@ -335,23 +335,28 @@ function ExpenseRow({
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {expense.description ?? expense.category.name}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span>{expense.category.name}</span>
+        <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden', flexWrap: 'nowrap' }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+            {expense.category.name}
+          </span>
           {expense.children && expense.children.length > 0 && (
             <>
-              <span>·</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--ink-faint)' }}>
+              <span style={{ flexShrink: 0 }}>·</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, whiteSpace: 'nowrap' }}>
                 <Layers size={11} />
-                {expense.children.length} items
+                {expense.children.length}
               </span>
             </>
           )}
           {expense.tags.length > 0 && (
             <>
-              <span>·</span>
-              {expense.tags.map((t) => (
-                <span key={t.id} className="chip" style={{ fontSize: 11, padding: '1px 6px' }}>{t.name}</span>
+              <span style={{ flexShrink: 0 }}>·</span>
+              {expense.tags.slice(0, 2).map((t) => (
+                <span key={t.id} className="chip" style={{ fontSize: 11, padding: '1px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>{t.name}</span>
               ))}
+              {expense.tags.length > 2 && (
+                <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>+{expense.tags.length - 2}</span>
+              )}
             </>
           )}
         </div>
