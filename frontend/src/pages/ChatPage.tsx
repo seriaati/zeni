@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Bot, Send, User } from 'lucide-react';
 import { marked } from 'marked';
 import { chat as chatApi } from '../lib/api';
-import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../components/ui/Toast';
 
 interface Message {
@@ -25,7 +24,6 @@ export function ChatPage() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { activeWallet } = useWallet();
   const toast = useToast();
 
   useEffect(() => {
@@ -41,7 +39,7 @@ export function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await chatApi.send(text, activeWallet?.id);
+      const res = await chatApi.send(text);
       setMessages((prev) =>
         prev.map((m) => (m.id === loadingMsg.id ? { ...m, content: res.response, loading: false } : m)),
       );
