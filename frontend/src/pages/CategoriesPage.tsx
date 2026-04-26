@@ -95,7 +95,7 @@ function CategoryForm({
                   height: 36,
                   borderRadius: 8,
                   border: `2px solid ${selected ? 'var(--forest)' : 'var(--cream-darker)'}`,
-                  background: selected ? (form.color ?? 'var(--forest)') : 'white',
+                  background: selected ? (form.color ?? 'var(--cream-darker)') : 'white',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
