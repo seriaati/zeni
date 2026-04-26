@@ -13,7 +13,13 @@ const h = t.hero;
       <p class="hero-sub animate-fade-up delay-2">{h.sub}</p>
       <div class="hero-actions animate-fade-up delay-3">
         <a href={t.site.appUrl} class="btn-primary">{h.ctaPrimary}</a>
-        <a href="#features" class="btn-ghost">{h.ctaGhost}</a>
+        <button class="btn-ghost btn-demo" id="demo-open">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <polygon points="10,8 17,12 10,16"/>
+          </svg>
+          Watch demo
+        </button>
       </div>
     </div>
 
@@ -70,6 +76,50 @@ const h = t.hero;
     </div>
   </div>
 </section>
+
+<!-- Demo video modal -->
+<div id="demo-modal" class="demo-backdrop" aria-modal="true" role="dialog" aria-label="Demo video">
+  <div class="demo-dialog">
+    <button class="demo-close" id="demo-close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <video
+      id="demo-video"
+      class="demo-video"
+      src="/demo.mp4"
+      controls
+      playsinline
+      preload="auto"
+    ></video>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('demo-modal') as HTMLElement;
+  const video = document.getElementById('demo-video') as HTMLVideoElement;
+  const openBtn = document.getElementById('demo-open');
+  const closeBtn = document.getElementById('demo-close');
+
+  function openModal() {
+    modal.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    video.play().catch(() => {});
+  }
+
+  function closeModal() {
+    modal.classList.remove('is-open');
+    document.body.style.overflow = '';
+    video.pause();
+    video.currentTime = 0;
+  }
+
+  openBtn?.addEventListener('click', openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+</script>
 
 <style>
 .hero {
@@ -398,6 +448,81 @@ const h = t.hero;
   background: var(--amber);
   border-radius: 99px;
 }
+
+/* ── Demo button ────────────────────────────────────────── */
+.btn-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+}
+
+/* ── Demo modal ──────────────────────────────────────────── */
+.demo-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: oklch(10% 0.01 80 / 0.72);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.demo-backdrop.is-open {
+  display: flex;
+  animation: backdropIn 0.2s ease;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.demo-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 32px 80px oklch(10% 0.01 80 / 0.4);
+  animation: dialogIn 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.demo-video {
+  display: block;
+  width: 100%;
+  max-height: 80vh;
+  background: #000;
+}
+
+.demo-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: oklch(10% 0.01 80 / 0.55);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.demo-close:hover { background: oklch(10% 0.01 80 / 0.8); }
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
