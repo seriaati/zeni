@@ -15,7 +15,7 @@ import sqlmodel.sql.sqltypes
 
 # revision identifiers, used by Alembic.
 revision: str = "b71ff816f398"
-down_revision: Union[str, Sequence[str], None] = "e99074fad2c7"
+down_revision: Union[str, Sequence[str], None] = "initial_oauth_tables"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
