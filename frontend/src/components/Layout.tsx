@@ -106,7 +106,7 @@ export function Layout() {
   }, [mobileWalletMenuOpen]);
 
   useEffect(() => {
-    closeMore();
+    if (moreOpen) closeMore();
   }, [location.pathname]);
 
   useEffect(() => {
