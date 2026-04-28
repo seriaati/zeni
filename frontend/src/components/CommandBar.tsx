@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,6 +16,7 @@ import {
   Paperclip,
   Pencil,
   RefreshCw,
+  Search,
   Settings,
   Shuffle,
   TrendingDown,
@@ -32,6 +33,7 @@ import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
 import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
+import { CategoryIcon } from '../lib/categoryIcons';
 import { DatePicker } from './ui/DatePicker';
 import { Select } from './ui/Select';
 
@@ -142,114 +144,227 @@ function TypeBadge({ type }: { type: 'expense' | 'income' }) {
   );
 }
 
+const CAT_DROPDOWN_MAX_H = 260;
+const CAT_DROPDOWN_MARGIN = 4;
+
+interface CatPos { top: number; left: number; width: number; openUp: boolean; }
+
 function CategoryInput({
   value,
   onChange,
   categories,
-  inputStyle,
 }: {
   value: string;
   onChange: (v: string) => void;
   categories: CategoryResponse[];
-  inputStyle: React.CSSProperties;
 }) {
-  const [focused, setFocused] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [pos, setPos] = useState<CatPos | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  const trimmed = value.trim();
-  const filtered = categories
-    .filter((c) => c.name.toLowerCase().includes(trimmed.toLowerCase()))
-    .slice(0, 8);
+  const matched = categories.find((c) => c.name.toLowerCase() === value.trim().toLowerCase());
+
+  const trimmed = query.trim();
+  const filtered = trimmed
+    ? categories.filter((c) => c.name.toLowerCase().includes(trimmed.toLowerCase()))
+    : categories;
   const exactMatch = categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase());
   const showCreate = trimmed.length > 0 && !exactMatch;
-  const showDropdown = focused && (filtered.length > 0 || showCreate);
+  const totalItems = filtered.length + (showCreate ? 1 : 0);
+
+  const measure = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const spaceAbove = r.top;
+    const openUp = spaceBelow < CAT_DROPDOWN_MAX_H + CAT_DROPDOWN_MARGIN && spaceAbove > spaceBelow;
+    setPos({
+      top: openUp ? r.top + window.scrollY - CAT_DROPDOWN_MARGIN : r.bottom + window.scrollY + CAT_DROPDOWN_MARGIN,
+      left: r.left + window.scrollX,
+      width: r.width,
+      openUp,
+    });
+  };
+
+  useLayoutEffect(() => { if (open) measure(); }, [open]);
 
   useEffect(() => {
-    if (!showDropdown) return;
+    if (!open) { setQuery(''); setFocusedIndex(0); return; }
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }, [open]);
+
+  useEffect(() => { setFocusedIndex(0); }, [query]);
+
+  useEffect(() => {
+    if (!open || focusedIndex < 0) return;
+    const el = listRef.current?.children[focusedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [focusedIndex, open]);
+
+  useEffect(() => {
+    if (!open) return;
     const close = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setFocused(false);
+      if (
+        !triggerRef.current?.contains(e.target as Node) &&
+        !dropdownRef.current?.contains(e.target as Node)
+      ) setOpen(false);
     };
+    const reposition = () => measure();
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [showDropdown]);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex((i) => Math.min(i + 1, totalItems - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex((i) => Math.max(i - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusedIndex < filtered.length) {
+          const cat = filtered[focusedIndex];
+          if (cat) { onChange(cat.name); setOpen(false); }
+        } else if (showCreate) {
+          onChange(trimmed);
+          setOpen(false);
+        }
+        break;
+      case 'Escape':
+        setOpen(false);
+        break;
+    }
+  };
+
+  const dropdown = open && pos ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'absolute',
+        top: pos.openUp ? undefined : pos.top,
+        bottom: pos.openUp ? window.innerHeight + window.scrollY - pos.top : undefined,
+        left: pos.left,
+        width: Math.max(pos.width, 200),
+        zIndex: 9999,
+        background: 'white',
+        border: '1.5px solid var(--sand)',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow-lg)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'ssDropIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) both',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--cream-dark)' }}>
+        <Search size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+        <input
+          ref={searchRef}
+          style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--ink)', background: 'transparent' }}
+          placeholder="Search or create category…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
+      <ul ref={listRef} style={{ listStyle: 'none', padding: 4, maxHeight: 200, overflowY: 'auto', margin: 0 }}>
+        {filtered.length === 0 && !showCreate && (
+          <li style={{ padding: '10px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>No results</li>
+        )}
+        {filtered.map((cat, i) => (
+          <li
+            key={cat.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px',
+              borderRadius: 'calc(var(--radius) - 4px)',
+              fontSize: 13,
+              cursor: 'pointer',
+              background: i === focusedIndex ? 'var(--cream-dark)' : 'transparent',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={() => setFocusedIndex(i)}
+            onMouseDown={(e) => { e.preventDefault(); onChange(cat.name); setOpen(false); }}
+          >
+            <CategoryIcon iconName={cat.icon} color={cat.color} size={11} containerSize={22} borderRadius={5} fallbackLetter={cat.name[0]} />
+            <span style={{ flex: 1, color: cat.name === value ? 'var(--forest)' : 'var(--ink)' }}>{cat.name}</span>
+            {cat.name === value && <Check size={13} style={{ color: 'var(--forest)', flexShrink: 0 }} />}
+          </li>
+        ))}
+        {showCreate && (
+          <li
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px',
+              borderRadius: 'calc(var(--radius) - 4px)',
+              fontSize: 13,
+              cursor: 'pointer',
+              background: focusedIndex === filtered.length ? 'var(--cream-dark)' : 'transparent',
+              transition: 'background 0.1s',
+              color: 'var(--forest)',
+              fontWeight: 500,
+            }}
+            onMouseEnter={() => setFocusedIndex(filtered.length)}
+            onMouseDown={(e) => { e.preventDefault(); onChange(trimmed); setOpen(false); }}
+          >
+            <Plus size={13} style={{ flexShrink: 0 }} />
+            <span>Create &ldquo;{trimmed}&rdquo;</span>
+          </li>
+        )}
+      </ul>
+    </div>,
+    document.body,
+  ) : null;
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        style={inputStyle}
-      />
-      {showDropdown && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          zIndex: 100,
+    <div style={{ position: 'relative' }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          width: '100%',
+          padding: '5px 8px',
+          borderRadius: 6,
+          fontSize: 13,
+          fontFamily: 'var(--font-body)',
+          fontWeight: 500,
           background: 'white',
           border: '1px solid var(--sand)',
-          borderRadius: 8,
-          boxShadow: '0 4px 16px oklch(18% 0.02 80 / 0.12)',
-          marginTop: 2,
-          overflow: 'hidden',
-        }}>
-          {filtered.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); onChange(cat.name); setFocused(false); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                width: '100%',
-                padding: '6px 10px',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontFamily: 'var(--font-body)',
-                color: 'var(--ink)',
-                textAlign: 'left',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--cream)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
-            >
-              {cat.name}
-            </button>
-          ))}
-          {showCreate && (
-            <button
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); setFocused(false); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                width: '100%',
-                padding: '6px 10px',
-                border: 'none',
-                borderTop: filtered.length > 0 ? '1px solid var(--cream-dark)' : 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontFamily: 'var(--font-body)',
-                color: 'var(--forest)',
-                fontWeight: 500,
-                textAlign: 'left',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--cream)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
-            >
-              <WandSparkles size={11} />
-              Create &ldquo;{trimmed}&rdquo; as new category
-            </button>
-          )}
-        </div>
-      )}
+          color: value ? 'var(--ink)' : 'var(--ink-faint)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        {matched ? (
+          <CategoryIcon iconName={matched.icon} color={matched.color} size={11} containerSize={20} borderRadius={4} fallbackLetter={matched.name[0]} />
+        ) : null}
+        <span style={{ flex: 1 }}>{value || 'Select category…'}</span>
+        <Search size={12} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+      </button>
+      {dropdown}
     </div>
   );
 }
@@ -364,7 +479,6 @@ function ExpenseCard({
               value={expense._editCategory}
               onChange={(v) => onChange({ ...expense, _editCategory: v })}
               categories={categories}
-              inputStyle={inputStyle}
             />
           ) : (
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{expense.category_name ?? 'Others'}</div>
@@ -758,7 +872,6 @@ function RecurringReview({
                 value={recurring._editCategory}
                 onChange={(v) => onChange({ ...recurring, _editCategory: v })}
                 categories={categories}
-                inputStyle={inputStyle}
               />
             ) : (
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{recurring.category_name}</div>
