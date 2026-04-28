@@ -27,10 +27,10 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { expenses as expensesApi, recurring as recurringApi } from '../lib/api';
+import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
-import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse } from '../lib/types';
+import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 import { DatePicker } from './ui/DatePicker';
 import { Select } from './ui/Select';
@@ -142,6 +142,118 @@ function TypeBadge({ type }: { type: 'expense' | 'income' }) {
   );
 }
 
+function CategoryInput({
+  value,
+  onChange,
+  categories,
+  inputStyle,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  categories: CategoryResponse[];
+  inputStyle: React.CSSProperties;
+}) {
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const trimmed = value.trim();
+  const filtered = categories
+    .filter((c) => c.name.toLowerCase().includes(trimmed.toLowerCase()))
+    .slice(0, 8);
+  const exactMatch = categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+  const showCreate = trimmed.length > 0 && !exactMatch;
+  const showDropdown = focused && (filtered.length > 0 || showCreate);
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    const close = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setFocused(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [showDropdown]);
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        style={inputStyle}
+      />
+      {showDropdown && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          background: 'white',
+          border: '1px solid var(--sand)',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px oklch(18% 0.02 80 / 0.12)',
+          marginTop: 2,
+          overflow: 'hidden',
+        }}>
+          {filtered.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); onChange(cat.name); setFocused(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                width: '100%',
+                padding: '6px 10px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontFamily: 'var(--font-body)',
+                color: 'var(--ink)',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--cream)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+            >
+              {cat.name}
+            </button>
+          ))}
+          {showCreate && (
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); setFocused(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                width: '100%',
+                padding: '6px 10px',
+                border: 'none',
+                borderTop: filtered.length > 0 ? '1px solid var(--cream-dark)' : 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontFamily: 'var(--font-body)',
+                color: 'var(--forest)',
+                fontWeight: 500,
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--cream)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+            >
+              <WandSparkles size={11} />
+              Create &ldquo;{trimmed}&rdquo; as new category
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExpenseCard({
   expense,
   onChange,
@@ -149,6 +261,7 @@ function ExpenseCard({
   label,
   onRemove,
   onCancelNew,
+  categories,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -156,6 +269,7 @@ function ExpenseCard({
   label?: string;
   onRemove?: () => void;
   onCancelNew?: () => void;
+  categories: CategoryResponse[];
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -246,12 +360,11 @@ function ExpenseCard({
             )}
           </div>
           {expense._editing ? (
-            <input
-              type="text"
+            <CategoryInput
               value={expense._editCategory}
-              onChange={(e) => onChange({ ...expense, _editCategory: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-              style={inputStyle}
+              onChange={(v) => onChange({ ...expense, _editCategory: v })}
+              categories={categories}
+              inputStyle={inputStyle}
             />
           ) : (
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{expense.category_name ?? 'Others'}</div>
@@ -349,17 +462,19 @@ function SingleReview({
   activeWalletCurrency,
   onSave,
   saving,
+  categories,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
   activeWalletCurrency?: string;
   onSave: () => void;
   saving: boolean;
+  categories: CategoryResponse[];
 }) {
   const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} />
+      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button
           className="btn btn-primary btn-sm"
@@ -392,12 +507,14 @@ function MultipleReview({
   activeWalletCurrency,
   onSave,
   saving,
+  categories,
 }: {
   expenses: EditableExpense[];
   onChange: (list: EditableExpense[]) => void;
   activeWalletCurrency?: string;
   onSave: () => void;
   saving: boolean;
+  categories: CategoryResponse[];
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -483,6 +600,7 @@ function MultipleReview({
                 currency={activeWalletCurrency}
                 label={`Expense ${i + 1}`}
                 onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
+                categories={categories}
               />
             </div>
           ))}
@@ -526,12 +644,14 @@ function RecurringReview({
   onChange,
   onSave,
   saving,
+  categories,
 }: {
   recurring: EditableRecurring;
   onChange: (r: EditableRecurring) => void;
   activeWalletCurrency?: string;
   onSave: () => void;
   saving: boolean;
+  categories: CategoryResponse[];
 }) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -634,12 +754,11 @@ function RecurringReview({
               )}
             </div>
             {recurring._editing ? (
-              <input
-                type="text"
+              <CategoryInput
                 value={recurring._editCategory}
-                onChange={(e) => onChange({ ...recurring, _editCategory: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-                style={inputStyle}
+                onChange={(v) => onChange({ ...recurring, _editCategory: v })}
+                categories={categories}
+                inputStyle={inputStyle}
               />
             ) : (
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{recurring.category_name}</div>
@@ -777,6 +896,7 @@ function GroupReview({
   onSave,
   saving,
   error,
+  categories,
 }: {
   parent: EditableExpense;
   items: EditableExpense[];
@@ -786,6 +906,7 @@ function GroupReview({
   onSave: () => void;
   saving: boolean;
   error: string;
+  categories: CategoryResponse[];
 }) {
   const [showItems, setShowItems] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -855,7 +976,7 @@ function GroupReview({
       </div>
 
       {!showItems ? (
-        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" />
+        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} />
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -892,6 +1013,7 @@ function GroupReview({
                     label={`Item ${i + 1}`}
                     onRemove={items.length > 1 ? () => removeItem(i) : undefined}
                     onCancelNew={item._isNew ? () => removeItem(i) : undefined}
+                    categories={categories}
                   />
                 </div>
               ))}
@@ -984,6 +1106,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const dragCounterRef = useRef(0);
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -1018,6 +1141,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     if (open) {
       reset();
       setTimeout(() => inputRef.current?.focus(), 50);
+      categoriesApi.list().then(setCategories).catch(() => {});
     }
   }, [open, reset]);
 
@@ -1549,6 +1673,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
               activeWalletCurrency={activeWallet?.currency}
               onSave={handleSaveSingle}
               saving={saving}
+              categories={categories}
             />
           )}
 
@@ -1560,6 +1685,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
               activeWalletCurrency={activeWallet?.currency}
               onSave={handleSaveMultiple}
               saving={saving}
+              categories={categories}
             />
           )}
 
@@ -1571,6 +1697,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
               activeWalletCurrency={activeWallet?.currency}
               onSave={handleSaveRecurring}
               saving={saving}
+              categories={categories}
             />
           )}
 
@@ -1585,6 +1712,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
               onSave={handleSaveGroup}
               saving={saving}
               error={error}
+              categories={categories}
             />
           )}
 
