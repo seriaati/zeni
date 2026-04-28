@@ -52,6 +52,11 @@ export function Layout() {
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreClosing, setMoreClosing] = useState(false);
+  const closeMore = useCallback(() => {
+    setMoreClosing(true);
+    setTimeout(() => { setMoreOpen(false); setMoreClosing(false); }, 260);
+  }, []);
   const [mcpOpen, setMcpOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [expenseAddedKey, setExpenseAddedKey] = useState(0);
@@ -62,38 +67,6 @@ export function Layout() {
   const location = useLocation();
   const walletSelectorRef = useRef<HTMLDivElement>(null);
   const mobileWalletRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const sheetTouchStartY = useRef(0);
-  const sheetDragging = useRef(false);
-
-  const handleSheetTouchStart = (e: React.TouchEvent) => {
-    sheetTouchStartY.current = e.touches[0].clientY;
-    sheetDragging.current = false;
-  };
-
-  const handleSheetTouchMove = (e: React.TouchEvent) => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    const deltaY = e.touches[0].clientY - sheetTouchStartY.current;
-    if (deltaY > 0 && sheet.scrollTop === 0) {
-      sheetDragging.current = true;
-      sheet.style.transform = `translateY(${deltaY}px)`;
-      sheet.style.transition = 'none';
-    }
-  };
-
-  const handleSheetTouchEnd = (e: React.TouchEvent) => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    const deltaY = e.changedTouches[0].clientY - sheetTouchStartY.current;
-    if (sheetDragging.current && deltaY > 80) {
-      setMoreOpen(false);
-    } else {
-      sheet.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
-      sheet.style.transform = '';
-    }
-    sheetDragging.current = false;
-  };
 
   const handleExpenseAdded = useCallback(() => {
     setExpenseAddedKey((k) => k + 1);
@@ -133,7 +106,7 @@ export function Layout() {
   }, [mobileWalletMenuOpen]);
 
   useEffect(() => {
-    setMoreOpen(false);
+    closeMore();
   }, [location.pathname]);
 
   useEffect(() => {
@@ -404,17 +377,10 @@ export function Layout() {
       )}
 
       {/* More bottom sheet — mobile only */}
-      {moreOpen && createPortal(
+      {(moreOpen || moreClosing) && createPortal(
         <>
-          <div className="more-backdrop" onClick={() => setMoreOpen(false)} />
-          <div
-            className="more-sheet"
-            ref={sheetRef}
-            onTouchStart={handleSheetTouchStart}
-            onTouchMove={handleSheetTouchMove}
-            onTouchEnd={handleSheetTouchEnd}
-          >
-            <div className="more-handle" />
+          <div className={`more-backdrop${moreClosing ? ' more-backdrop--closing' : ''}`} onClick={() => closeMore()} />
+          <div className={`more-sheet${moreClosing ? ' more-sheet--closing' : ''}`}>
             <nav className="more-nav">
               <NavLink to="/budgets" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Zap size={16} />
@@ -445,7 +411,7 @@ export function Layout() {
                   Admin
                 </NavLink>
               )}
-              <button className="nav-item" onClick={() => { setMoreOpen(false); setMcpOpen(true); }}>
+              <button className="nav-item" onClick={() => { closeMore(); setMcpOpen(true); }}>
                 <Plug size={16} />
                 MCP
               </button>
@@ -463,7 +429,7 @@ export function Layout() {
               {installPrompt && (
                 <button
                   className="nav-item pwa-install-btn"
-                  onClick={() => { void handleInstall(); setMoreOpen(false); }}
+                  onClick={() => { void handleInstall(); closeMore(); }}
                 >
                   <Download size={16} />
                   Install app

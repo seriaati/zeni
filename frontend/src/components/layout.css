@@ -416,14 +416,6 @@
   animation: slideUpSheet 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.more-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--cream-darker);
-  border-radius: 2px;
-  margin: 12px auto 8px;
-}
-
 .more-nav {
   display: flex;
   flex-direction: column;
@@ -453,6 +445,24 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes slideDownSheet {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.more-sheet--closing {
+  animation: slideDownSheet 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.more-backdrop--closing {
+  animation: fadeOut 0.26s ease both;
 }
 
 /* ===== MOBILE ===== */
