@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Layers, Wallet } from 'lucide-react';
 import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
@@ -24,6 +24,7 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
   const [weekSummary, setWeekSummary] = useState<TransactionSummary | null>(null);
   const [recent, setRecent] = useState<TransactionResponse[]>([]);
@@ -79,6 +80,10 @@ export function DashboardPage() {
 
   const getCategoryName = (id: string | null) =>
     id ? (categories.find((c) => c.id === id)?.name ?? 'Unknown') : null;
+
+  const goToCategory = (categoryId: string) => {
+    navigate(`/wallets/${activeWallet!.id}?category_id=${categoryId}`);
+  };
 
   const overBudget = budgets.filter((b) => b.is_over_budget);
   const nearLimit = budgets.filter((b) => !b.is_over_budget && b.percentage_used >= 80);
@@ -343,6 +348,9 @@ export function DashboardPage() {
                           innerRadius={45}
                           outerRadius={72}
                           paddingAngle={2}
+                          cursor="pointer"
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          onClick={(data: any) => goToCategory(data.category_id as string)}
                           shape={(props, index) => (
                             <Sector
                               cx={props.cx}
@@ -353,6 +361,7 @@ export function DashboardPage() {
                               endAngle={props.endAngle}
                               cornerRadius={props.cornerRadius}
                               fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                              style={{ cursor: 'pointer' }}
                             />
                           )}
                         />
@@ -361,12 +370,18 @@ export function DashboardPage() {
                     </ResponsiveContainer>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                       {displayed.map((cat, i) => (
-                        <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <button
+                          key={cat.category_id}
+                          onClick={() => goToCategory(cat.category_id)}
+                          style={{ display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 4 }}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                        >
                           <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
                           <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
                           <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
-                        </div>
+                        </button>
                       ))}
                       {sorted.length > 3 && (
                         <button
@@ -411,6 +426,8 @@ export function DashboardPage() {
                             innerRadius={45}
                             outerRadius={72}
                             paddingAngle={2}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            onClick={(data: any) => goToCategory(data.category_id as string)}
                             shape={(props, index) => (
                               <Sector
                                 cx={props.cx}
@@ -421,6 +438,7 @@ export function DashboardPage() {
                                 endAngle={props.endAngle}
                                 cornerRadius={props.cornerRadius}
                                 fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                                style={{ cursor: 'pointer' }}
                               />
                             )}
                           />
@@ -429,12 +447,18 @@ export function DashboardPage() {
                       </ResponsiveContainer>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                         {displayed.map((cat, i) => (
-                          <div key={cat.category_id} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <button
+                            key={cat.category_id}
+                            onClick={() => goToCategory(cat.category_id)}
+                            style={{ display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 4 }}
+                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                          >
                             <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
                             <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
                             <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
                             <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{fmt(cat.total, activeWallet.currency)}</span>
-                          </div>
+                          </button>
                         ))}
                         {sorted.length > 3 && (
                           <button
