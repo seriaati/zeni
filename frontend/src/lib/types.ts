@@ -62,6 +62,17 @@ export interface TagBrief {
   color: string | null;
 }
 
+export interface TransactionLinkBrief {
+  id: string;
+  wallet_id: string;
+  category: CategoryBrief;
+  type: 'expense' | 'income';
+  amount: number;
+  description: string | null;
+  date: string;
+  tags: TagBrief[];
+}
+
 export interface TransactionResponse {
   id: string;
   wallet_id: string;
@@ -74,6 +85,7 @@ export interface TransactionResponse {
   tags: TagBrief[];
   group_id: string | null;
   children: TransactionResponse[] | null;
+  linked_transactions: TransactionLinkBrief[];
   created_at: string;
   updated_at: string;
 }

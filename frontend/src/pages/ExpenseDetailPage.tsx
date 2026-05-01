@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
+import { ArrowLeft, CornerUpLeft, Bot, Layers, Link2, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi } from '../lib/api';
+import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi, transactionLinks } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
-import type { CategoryResponse, TransactionResponse, TagResponse } from '../lib/types';
+import type { CategoryResponse, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
+import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 
@@ -335,6 +336,8 @@ export function ExpenseDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   const [form, setForm] = useState({
     amount: '',
@@ -351,11 +354,13 @@ export function ExpenseDetailPage() {
       categoriesApi.list(),
       tagsApi.list(),
       walletsApi.get(walletId),
-    ]).then(([exp, cats, tags, wallet]) => {
+      walletsApi.list(),
+    ]).then(([exp, cats, tags, wallet, allWs]) => {
       setCurrency(wallet.currency);
       setExpense(exp);
       setCategories(cats);
       setAllTags(tags);
+      setAllWallets(allWs);
       setForm({
         amount: String(exp.amount),
         description: exp.description ?? '',
@@ -399,6 +404,27 @@ export function ExpenseDetailPage() {
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to delete', 'error');
       setDeleting(false);
+    }
+  };
+
+  const handleLink = async (targetId: string) => {
+    if (!expenseId || !walletId) return;
+    await transactionLinks.add(expenseId, targetId);
+    const updated = await expensesApi.get(walletId, expenseId);
+    setExpense(updated);
+    toast('Transaction linked', 'success');
+  };
+
+  const handleUnlink = async (targetId: string) => {
+    if (!expenseId) return;
+    try {
+      await transactionLinks.remove(expenseId, targetId);
+      setExpense((prev) =>
+        prev ? { ...prev, linked_transactions: prev.linked_transactions.filter((l) => l.id !== targetId) } : prev,
+      );
+      toast('Link removed', 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed to remove link', 'error');
     }
   };
 
@@ -500,6 +526,16 @@ export function ExpenseDetailPage() {
           }
         </p>
       </Modal>
+
+      <LinkedTransactionsPicker
+        open={showLinkPicker}
+        onClose={() => setShowLinkPicker(false)}
+        currentTransactionId={expenseId ?? ''}
+        currentWalletId={walletId ?? ''}
+        wallets={allWallets}
+        alreadyLinkedIds={expense.linked_transactions.map((l) => l.id)}
+        onLink={handleLink}
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Part of group indicator */}
@@ -677,6 +713,64 @@ export function ExpenseDetailPage() {
               <span>{expense.children.length} item{expense.children.length !== 1 ? 's' : ''}</span>
               <span style={{ fontWeight: 600 }}>{fmt(expense.children.reduce((s, c) => s + c.amount, 0), currency)}</span>
             </div>
+          </div>
+        )}
+
+        {/* Linked transactions */}
+        {(expense.linked_transactions.length > 0 || editing) && (
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Link2 size={13} style={{ color: 'var(--ink-faint)' }} />
+                <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Linked Transactions</span>
+              </div>
+              {editing && (
+                <button
+                  onClick={() => setShowLinkPicker(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }}
+                >
+                  <Plus size={12} /> Add link
+                </button>
+              )}
+            </div>
+            {expense.linked_transactions.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic', margin: 0 }}>No linked transactions</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {expense.linked_transactions.map((linked, i) => {
+                  const linkedWalletCurrency = allWallets.find((w) => w.id === linked.wallet_id)?.currency ?? 'USD';
+                  return (
+                    <div key={linked.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--cream)' }}>
+                      <Link
+                        to={`/wallets/${linked.wallet_id}/expenses/${linked.id}`}
+                        style={{ flex: 1, minWidth: 0, textDecoration: 'none' }}
+                      >
+                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {linked.description ?? linked.category.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+                          {linked.category.name} · {fmtDate(linked.date)}
+                          {linked.wallet_id !== walletId && allWallets.find((w) => w.id === linked.wallet_id) && (
+                            <span> · {allWallets.find((w) => w.id === linked.wallet_id)!.name}</span>
+                          )}
+                        </div>
+                      </Link>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: linked.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
+                        {linked.type === 'income' ? '+' : '-'}{fmt(linked.amount, linkedWalletCurrency)}
+                      </div>
+                      {editing && (
+                        <button
+                          onClick={() => handleUnlink(linked.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

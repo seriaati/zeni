@@ -317,6 +317,25 @@ export const chat = {
     }),
 };
 
+export const transactionLinks = {
+  search: (params: { q?: string; wallet_id?: string; exclude_id?: string; page?: number; page_size?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.q) q.set('q', params.q);
+    if (params.wallet_id) q.set('wallet_id', params.wallet_id);
+    if (params.exclude_id) q.set('exclude_id', params.exclude_id);
+    if (params.page) q.set('page', String(params.page));
+    if (params.page_size) q.set('page_size', String(params.page_size));
+    return request<TransactionListResponse>(`/transactions/search?${q}`);
+  },
+  add: (transactionId: string, targetId: string) =>
+    request<void>(`/transactions/${transactionId}/links`, {
+      method: 'POST',
+      body: JSON.stringify({ target_transaction_id: targetId }),
+    }),
+  remove: (transactionId: string, targetId: string) =>
+    request<void>(`/transactions/${transactionId}/links/${targetId}`, { method: 'DELETE' }),
+};
+
 export const admin = {
   getSettings: () => request<AdminSettingsResponse>('/admin/settings'),
   updateSettings: (data: { signups_enabled: boolean }) =>
