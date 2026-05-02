@@ -185,7 +185,7 @@ export function Layout() {
                     className={`wallet-option ${w.id === activeWallet?.id ? 'wallet-option-active' : ''}`}
                     onClick={(e) => { e.stopPropagation(); switchWallet(w); setWalletMenuOpen(false); }}
                   >
-                    <div className="wallet-dot" style={{ background: w.is_default ? 'var(--forest)' : 'var(--sand-dark)' }} />
+                    <div className="wallet-dot" style={{ background: 'var(--sand-dark)' }} />
                     <span>{w.name}</span>
                     <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-faint)' }}>{w.currency}</span>
                   </button>
@@ -316,7 +316,7 @@ export function Layout() {
                       className={`wallet-option ${w.id === activeWallet?.id ? 'wallet-option-active' : ''}`}
                       onClick={(e) => { e.stopPropagation(); switchWallet(w); setMobileWalletMenuOpen(false); }}
                     >
-                      <div className="wallet-dot" style={{ background: w.is_default ? 'var(--forest)' : 'var(--sand-dark)' }} />
+                      <div className="wallet-dot" style={{ background: 'var(--sand-dark)' }} />
                       <span>{w.name}</span>
                       <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-faint)' }}>{w.currency}</span>
                     </button>

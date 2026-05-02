@@ -13,6 +13,8 @@ interface WalletContextValue {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
+const LAST_WALLET_KEY = (userId: string) => `zeni_last_wallet_${userId}`;
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [wallets, setWallets] = useState<WalletResponse[]>([]);
@@ -30,7 +32,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           const updated = list.find((w) => w.id === prev.id);
           if (updated) return updated;
         }
-        return list.find((w) => w.is_default) ?? list[0] ?? null;
+        const lastId = localStorage.getItem(LAST_WALLET_KEY(user.id));
+        return (lastId ? list.find((w) => w.id === lastId) : null) ?? list[0] ?? null;
       });
     } catch {
       // ignore
@@ -45,6 +48,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const setActiveWallet = (wallet: WalletResponse) => {
     setActiveWalletState(wallet);
+    if (user) localStorage.setItem(LAST_WALLET_KEY(user.id), wallet.id);
   };
 
   return (

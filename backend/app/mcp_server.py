@@ -143,7 +143,6 @@ async def list_wallets() -> list[dict[str, Any]]:
                 "id": str(w.id),
                 "name": w.name,
                 "currency": w.currency,
-                "is_default": w.is_default,
                 "created_at": w.created_at.isoformat(),
             }
             for w in result.all()

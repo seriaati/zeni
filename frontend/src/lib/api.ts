@@ -120,9 +120,9 @@ export const users = {
 export const wallets = {
   list: () => request<WalletResponse[]>('/wallets'),
   get: (id: string) => request<WalletSummary>(`/wallets/${id}`),
-  create: (data: { name: string; currency: string; is_default?: boolean }) =>
+  create: (data: { name: string; currency: string }) =>
     request<WalletResponse>('/wallets', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { name?: string; currency?: string; is_default?: boolean }) =>
+  update: (id: string, data: { name?: string; currency?: string }) =>
     request<WalletResponse>(`/wallets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/wallets/${id}`, { method: 'DELETE' }),
 };

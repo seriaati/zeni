@@ -34,9 +34,7 @@ async def _get_signups_enabled(session: AsyncSession) -> bool:
 
 
 def _create_others_category(user_id: uuid.UUID, session: AsyncSession) -> None:
-    category = Category(
-        user_id=user_id, name="Others", icon="tag", color="#9CA3AF", is_system=True
-    )
+    category = Category(user_id=user_id, name="Others", icon="tag", color="#9CA3AF", is_system=True)
     session.add(category)
 
 
@@ -59,7 +57,7 @@ async def signup(body: SignupRequest, session: DbDep) -> TokenResponse:
 
     _create_others_category(user.id, session)
 
-    wallet = Wallet(user_id=user.id, name="Main Wallet", currency="USD", is_default=True)
+    wallet = Wallet(user_id=user.id, name="Main Wallet", currency="USD")
     session.add(wallet)
 
     await session.commit()

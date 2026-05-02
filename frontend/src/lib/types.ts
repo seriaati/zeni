@@ -18,7 +18,6 @@ export interface WalletResponse {
   user_id: string;
   name: string;
   currency: string;
-  is_default: boolean;
   created_at: string;
 }
 

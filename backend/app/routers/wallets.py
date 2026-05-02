@@ -26,7 +26,6 @@ def _wallet_to_response(wallet: Wallet) -> WalletResponse:
         user_id=wallet.user_id,
         name=wallet.name,
         currency=wallet.currency,
-        is_default=wallet.is_default,
         created_at=wallet.created_at,
     )
 
@@ -47,17 +46,7 @@ async def _get_wallet_or_404(
 async def create_wallet(
     body: WalletCreate, current_user: CurrentUser, session: DbDep
 ) -> WalletResponse:
-    if body.is_default:
-        result = await session.exec(
-            select(Wallet).where(Wallet.user_id == current_user.id, Wallet.is_default)
-        )
-        for w in result.all():
-            w.is_default = False
-            session.add(w)
-
-    wallet = Wallet(
-        user_id=current_user.id, name=body.name, currency=body.currency, is_default=body.is_default
-    )
+    wallet = Wallet(user_id=current_user.id, name=body.name, currency=body.currency)
     session.add(wallet)
     await session.commit()
     await session.refresh(wallet)
@@ -113,7 +102,6 @@ async def get_wallet(
         user_id=wallet.user_id,
         name=wallet.name,
         currency=wallet.currency,
-        is_default=wallet.is_default,
         created_at=wallet.created_at,
         total_expenses=float(total_expenses),
         expense_count=int(expense_count),
@@ -133,15 +121,6 @@ async def update_wallet(
         wallet.name = body.name
     if body.currency is not None:
         wallet.currency = body.currency
-    if body.is_default is not None:
-        if body.is_default:
-            result = await session.exec(
-                select(Wallet).where(Wallet.user_id == current_user.id, Wallet.is_default)
-            )
-            for w in result.all():
-                w.is_default = False
-                session.add(w)
-        wallet.is_default = body.is_default
 
     session.add(wallet)
     await session.commit()

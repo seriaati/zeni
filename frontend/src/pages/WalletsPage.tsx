@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Star, ArrowRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowRight } from 'lucide-react';
 import { wallets as walletsApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../components/ui/Toast';
@@ -15,16 +15,16 @@ export function WalletsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editWallet, setEditWallet] = useState<WalletResponse | null>(null);
   const [deleteWallet, setDeleteWallet] = useState<WalletResponse | null>(null);
-  const [form, setForm] = useState({ name: '', currency: 'USD', is_default: false });
+  const [form, setForm] = useState({ name: '', currency: 'USD' });
   const [saving, setSaving] = useState(false);
 
   const openCreate = () => {
-    setForm({ name: '', currency: 'USD', is_default: false });
+    setForm({ name: '', currency: 'USD' });
     setShowCreate(true);
   };
 
   const openEdit = (w: WalletResponse) => {
-    setForm({ name: w.name, currency: w.currency, is_default: w.is_default });
+    setForm({ name: w.name, currency: w.currency });
     setEditWallet(w);
   };
 
@@ -99,11 +99,6 @@ export function WalletsPage() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                   <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{w.name}</span>
-                  {w.is_default && (
-                    <span className="badge badge-green" style={{ fontSize: 11 }}>
-                      <Star size={10} /> Default
-                    </span>
-                  )}
                 </div>
                 <span style={{ fontSize: 13, color: 'var(--ink-faint)' }}>{w.currency}</span>
               </div>
@@ -111,11 +106,9 @@ export function WalletsPage() {
                 <button className="icon-btn" onClick={() => openEdit(w)} title="Edit">
                   <Pencil size={14} />
                 </button>
-                {!w.is_default && (
-                  <button className="icon-btn" onClick={() => setDeleteWallet(w)} title="Delete" style={{ color: 'var(--rose)' }}>
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                <button className="icon-btn" onClick={() => setDeleteWallet(w)} title="Delete" style={{ color: 'var(--rose)' }}>
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
 
@@ -167,14 +160,6 @@ export function WalletsPage() {
             searchPlaceholder="Search currency…"
           />
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--ink-mid)' }}>
-          <input
-            type="checkbox"
-            checked={form.is_default}
-            onChange={(e) => setForm({ ...form, is_default: e.target.checked })}
-          />
-          Set as default wallet
-        </label>
       </Modal>
 
       {/* Delete confirm */}

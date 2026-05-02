@@ -16,7 +16,6 @@ class Wallet(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     name: str = Field(max_length=100)
     currency: str = Field(max_length=10)
-    is_default: bool = Field(default=False)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(
