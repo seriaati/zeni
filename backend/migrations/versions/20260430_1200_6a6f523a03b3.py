@@ -1,7 +1,7 @@
 """add transaction links
 
 Revision ID: 6a6f523a03b3
-Revises: 82f15786d962
+Revises: 81b3b1edb12b
 Create Date: 2026-04-30 12:00:48.278960
 
 """
@@ -15,7 +15,7 @@ import sqlmodel.sql.sqltypes
 
 # revision identifiers, used by Alembic.
 revision: str = "6a6f523a03b3"
-down_revision: Union[str, Sequence[str], None] = "82f15786d962"
+down_revision: Union[str, Sequence[str], None] = "81b3b1edb12b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
