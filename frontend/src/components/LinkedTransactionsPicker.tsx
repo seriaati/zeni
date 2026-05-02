@@ -13,7 +13,7 @@ interface LinkedTransactionsPickerProps {
   currentWalletId: string;
   wallets: WalletResponse[];
   alreadyLinkedIds: string[];
-  onLink: (targetId: string) => Promise<void>;
+  onLink: (transaction: TransactionResponse) => Promise<void>;
 }
 
 export function LinkedTransactionsPicker({
@@ -66,10 +66,10 @@ export function LinkedTransactionsPicker({
   const walletCurrency = (walletId: string) =>
     wallets.find((w) => w.id === walletId)?.currency ?? 'USD';
 
-  const handleLink = async (targetId: string) => {
-    setLinkingId(targetId);
+  const handleLink = async (target: TransactionResponse) => {
+    setLinkingId(target.id);
     try {
-      await onLink(targetId);
+      await onLink(target);
     } finally {
       setLinkingId(null);
     }
@@ -80,18 +80,10 @@ export function LinkedTransactionsPicker({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <select
+            className="input"
             value={selectedWalletId}
             onChange={(e) => setSelectedWalletId(e.target.value)}
-            style={{
-              flex: '0 0 auto',
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid var(--cream-darker, #e5e0d8)',
-              fontSize: 13,
-              background: 'white',
-              color: 'var(--ink)',
-              cursor: 'pointer',
-            }}
+            style={{ flex: '0 0 auto', width: 'auto' }}
           >
             {wallets.map((w) => (
               <option key={w.id} value={w.id}>
@@ -101,22 +93,15 @@ export function LinkedTransactionsPicker({
           </select>
           <input
             autoFocus
+            className="input"
             type="text"
             placeholder="Search transactions…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid var(--cream-darker, #e5e0d8)',
-              fontSize: 13,
-              outline: 'none',
-            }}
           />
         </div>
 
-        <div style={{ minHeight: 200, maxHeight: 360, overflowY: 'auto' }}>
+        <div style={{ minHeight: 200, maxHeight: 360, overflowY: 'auto', scrollbarGutter: 'stable', paddingRight: 8 }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
               <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--ink-faint, #aaa)' }} />
@@ -132,7 +117,7 @@ export function LinkedTransactionsPicker({
               return (
                 <div
                   key={t.id}
-                  onClick={() => !linked && !isLinking && handleLink(t.id)}
+                  onClick={() => !linked && !isLinking && handleLink(t)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

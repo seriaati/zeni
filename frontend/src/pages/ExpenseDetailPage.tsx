@@ -7,7 +7,7 @@ import { useToast } from '../components/ui/Toast';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
-import type { CategoryResponse, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
+import type { CategoryResponse, TransactionLinkBrief, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -338,6 +338,7 @@ export function ExpenseDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
+  const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
 
   const [form, setForm] = useState({
     amount: '',
@@ -373,7 +374,7 @@ export function ExpenseDetailPage() {
   }, [walletId, expenseId, toast]);
 
   const handleSave = async () => {
-    if (!walletId || !expenseId) return;
+    if (!walletId || !expenseId || !expense) return;
     setSaving(true);
     try {
       const updated = await expensesApi.update(walletId, expenseId, {
@@ -383,7 +384,15 @@ export function ExpenseDetailPage() {
         date: form.date ? new Date(form.date).toISOString() : undefined,
         tag_ids: form.tag_ids,
       });
-      setExpense(updated);
+      const originalIds = expense.linked_transactions.map((l) => l.id);
+      const pendingIds = pendingLinks.map((l) => l.id);
+      const toAdd = pendingIds.filter((id) => !originalIds.includes(id));
+      const toRemove = originalIds.filter((id) => !pendingIds.includes(id));
+      await Promise.all([
+        ...toAdd.map((id) => transactionLinks.add(expenseId, id)),
+        ...toRemove.map((id) => transactionLinks.remove(expenseId, id)),
+      ]);
+      setExpense({ ...updated, linked_transactions: pendingLinks });
       setEditing(false);
       toast('Transaction updated', 'success');
     } catch (e) {
@@ -407,25 +416,22 @@ export function ExpenseDetailPage() {
     }
   };
 
-  const handleLink = async (targetId: string) => {
-    if (!expenseId || !walletId) return;
-    await transactionLinks.add(expenseId, targetId);
-    const updated = await expensesApi.get(walletId, expenseId);
-    setExpense(updated);
-    toast('Transaction linked', 'success');
+  const handleLink = async (transaction: TransactionResponse) => {
+    const brief: TransactionLinkBrief = {
+      id: transaction.id,
+      wallet_id: transaction.wallet_id,
+      category: transaction.category,
+      type: transaction.type,
+      amount: transaction.amount,
+      description: transaction.description,
+      date: transaction.date,
+      tags: transaction.tags,
+    };
+    setPendingLinks((prev) => prev.some((l) => l.id === brief.id) ? prev : [...prev, brief]);
   };
 
-  const handleUnlink = async (targetId: string) => {
-    if (!expenseId) return;
-    try {
-      await transactionLinks.remove(expenseId, targetId);
-      setExpense((prev) =>
-        prev ? { ...prev, linked_transactions: prev.linked_transactions.filter((l) => l.id !== targetId) } : prev,
-      );
-      toast('Link removed', 'success');
-    } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed to remove link', 'error');
-    }
+  const handleUnlink = (targetId: string) => {
+    setPendingLinks((prev) => prev.filter((l) => l.id !== targetId));
   };
 
   const handleAddTag = (id: string) => {
@@ -481,7 +487,7 @@ export function ExpenseDetailPage() {
         <div style={{ display: 'flex', gap: 6 }}>
           {!editing ? (
             <>
-              <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
+              <button className="btn btn-secondary btn-sm" onClick={() => { setPendingLinks(expense.linked_transactions); setEditing(true); }}>
                 <Pencil size={13} /> Edit
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)} disabled={deleting}>
@@ -533,7 +539,7 @@ export function ExpenseDetailPage() {
         currentTransactionId={expenseId ?? ''}
         currentWalletId={walletId ?? ''}
         wallets={allWallets}
-        alreadyLinkedIds={expense.linked_transactions.map((l) => l.id)}
+        alreadyLinkedIds={pendingLinks.map((l) => l.id)}
         onLink={handleLink}
       />
 
@@ -730,11 +736,11 @@ export function ExpenseDetailPage() {
                 </button>
               )}
             </div>
-            {expense.linked_transactions.length === 0 ? (
+            {(editing ? pendingLinks : expense.linked_transactions).length === 0 ? (
               <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic', margin: 0 }}>No linked transactions</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {expense.linked_transactions.map((linked, i) => {
+                {(editing ? pendingLinks : expense.linked_transactions).map((linked, i) => {
                   const linkedWalletCurrency = allWallets.find((w) => w.id === linked.wallet_id)?.currency ?? 'USD';
                   return (
                     <div key={linked.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--cream)' }}>
