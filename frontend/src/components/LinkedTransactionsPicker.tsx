@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { transactionLinks } from '../lib/api';
 import { Modal } from './ui/Modal';
+import { Select } from './ui/Select';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { TransactionResponse, WalletResponse } from '../lib/types';
 import { fmt, fmtDate } from '../lib/utils';
@@ -79,18 +80,11 @@ export function LinkedTransactionsPicker({
     <Modal open={open} onClose={onClose} title="Link a transaction" size="lg">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select
-            className="input"
+          <Select
             value={selectedWalletId}
-            onChange={(e) => setSelectedWalletId(e.target.value)}
-            style={{ flex: '0 0 auto', width: 'auto' }}
-          >
-            {wallets.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedWalletId}
+            options={wallets.map((w) => ({ value: w.id, label: w.name }))}
+          />
           <input
             autoFocus
             className="input"
