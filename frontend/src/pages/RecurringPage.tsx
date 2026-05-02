@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Pause, Play, RefreshCw } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import { recurring as recurringApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
+import type { LayoutOutletContext } from '../components/Layout';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
@@ -12,6 +14,7 @@ import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 export function RecurringPage() {
   const { activeWallet } = useWallet();
   const toast = useToast();
+  const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const [items, setItems] = useState<RecurringTransactionResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ export function RecurringPage() {
     }
   };
 
-  useEffect(() => { load(); }, [activeWallet]);
+  useEffect(() => { load(); }, [activeWallet, expenseAddedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => {
     setForm({ category_id: categories[0]?.id ?? '', type: 'expense', amount: '', description: '', frequency: 'monthly', next_due: new Date().toISOString().slice(0, 10) });

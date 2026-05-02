@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useOutletContext } from 'react-router-dom';
 import { Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -8,11 +8,13 @@ import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import type { LayoutOutletContext } from '../components/Layout';
 
 export function WalletViewPage() {
   const { walletId } = useParams<{ walletId: string }>();
   const [searchParams] = useSearchParams();
   const toast = useToast();
+  const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [data, setData] = useState<TransactionListResponse | null>(null);
@@ -65,7 +67,7 @@ export function WalletViewPage() {
     } finally {
       setLoading(false);
     }
-  }, [walletId, page, search, categoryId, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast]);
+  }, [walletId, page, search, categoryId, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast, expenseAddedKey]);
 
   useEffect(() => { load(); }, [load]);
 
