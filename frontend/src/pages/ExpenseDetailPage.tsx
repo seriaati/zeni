@@ -741,6 +741,8 @@ export function ExpenseDetailPage() {
                       <Link
                         to={`/wallets/${linked.wallet_id}/expenses/${linked.id}`}
                         style={{ flex: 1, minWidth: 0, textDecoration: 'none' }}
+                        onMouseEnter={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.textDecoration = 'underline'; }}
+                        onMouseLeave={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.textDecoration = 'none'; }}
                       >
                         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {linked.description ?? linked.category.name}
