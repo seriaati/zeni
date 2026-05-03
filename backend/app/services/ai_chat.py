@@ -376,7 +376,8 @@ async def _tool_get_monthly_trend(
     return {"trend": trend}
 
 
-_fx_cache: dict[str, tuple[float, float]] = {}
+# Cache full rates dict per base currency: {base: (rates_dict, fetched_at)}
+_fx_cache: dict[str, tuple[dict[str, float], float]] = {}
 _FX_TTL = 3600.0
 
 
@@ -388,10 +389,9 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
     if from_cur == to_cur:
         return {"from_currency": from_cur, "to_currency": to_cur, "rate": 1.0, "result": amount}
 
-    cache_key = f"{from_cur}:{to_cur}"
-    cached = _fx_cache.get(cache_key)
+    cached = _fx_cache.get(from_cur)
     if cached and time.time() - cached[1] < _FX_TTL:
-        rate = cached[0]
+        rates = cached[0]
     else:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(f"https://open.er-api.com/v6/latest/{from_cur}")
@@ -402,11 +402,13 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
         if data.get("result") != "success":
             msg = f"Exchange rate API error: {data.get('error-type', 'unknown')}"
             raise ValueError(msg)
-        rate = data["rates"].get(to_cur)
-        if rate is None:
-            msg = f"Unsupported currency: {to_cur}"
-            raise ValueError(msg)
-        _fx_cache[cache_key] = (float(rate), time.time())
+        rates = {k: float(v) for k, v in data["rates"].items()}
+        _fx_cache[from_cur] = (rates, time.time())
+
+    rate = rates.get(to_cur)
+    if rate is None:
+        msg = f"Unsupported currency: {to_cur}"
+        raise ValueError(msg)
 
     return {
         "from_currency": from_cur,
