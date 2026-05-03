@@ -33,6 +33,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     timezone: str | None = None
     custom_ai_prompt: str | None = None
+    global_currency: str | None = None
 
 
 class UpdateProfileRequest(BaseModel):
@@ -40,6 +41,7 @@ class UpdateProfileRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8)
     timezone: str | None = Field(default=None, max_length=50)
     custom_ai_prompt: str | None = Field(default=None, max_length=500)
+    global_currency: str | None = Field(default=None, max_length=10)
 
 
 class AdminSettingsRequest(BaseModel):
