@@ -1,22 +1,47 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useSearchParams, useOutletContext } from 'react-router-dom';
-import { Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
+import { ArrowLeftRight, Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { getExchangeRate } from '../lib/fx';
 import type { LayoutOutletContext } from '../components/Layout';
+
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 export function WalletViewPage() {
   const { walletId } = useParams<{ walletId: string }>();
   const [searchParams] = useSearchParams();
   const toast = useToast();
+  const { user } = useAuth();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [fxRate, setFxRate] = useState<number | null>(null);
+  const isMobile = useIsMobile();
+  const [showConverted, setShowConverted] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  const handleToggleConverted = () => {
+    if (switching) return;
+    setSwitching(true);
+    setTimeout(() => setShowConverted((v) => !v), 112);
+    setTimeout(() => setSwitching(false), 320);
+  };
   const [data, setData] = useState<TransactionListResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
@@ -70,6 +95,16 @@ export function WalletViewPage() {
   }, [walletId, page, search, categoryId, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast, expenseAddedKey]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const globalCurrency = user?.global_currency;
+    const walletCurrency = wallet?.currency;
+    if (!globalCurrency || !walletCurrency || globalCurrency === walletCurrency) {
+      setFxRate(null);
+      return;
+    }
+    getExchangeRate(walletCurrency, globalCurrency).then(setFxRate);
+  }, [wallet?.currency, user?.global_currency]);
 
   const handleExport = async (format: 'csv' | 'json') => {
     if (!walletId) return;
@@ -254,6 +289,18 @@ export function WalletViewPage() {
         </div>
       ) : (
         <>
+          {isMobile && fxRate != null && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleToggleConverted}
+                style={{ gap: 5, fontSize: 12 }}
+              >
+                <ArrowLeftRight size={12} />
+                {showConverted ? `${user?.global_currency} (converted)` : `${wallet?.currency} (original)`}
+              </button>
+            </div>
+          )}
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
             {data.items.map((expense, i) => (
               <ExpenseRow
@@ -262,6 +309,11 @@ export function WalletViewPage() {
                 currency={wallet?.currency ?? 'USD'}
                 walletId={walletId!}
                 isLast={i === data.items.length - 1}
+                fxRate={fxRate}
+                globalCurrency={user?.global_currency ?? null}
+                isMobile={isMobile}
+                showConverted={showConverted}
+                switching={switching}
               />
             ))}
           </div>
@@ -303,12 +355,27 @@ function ExpenseRow({
   currency,
   walletId,
   isLast,
+  fxRate,
+  globalCurrency,
+  isMobile,
+  showConverted,
+  switching,
 }: {
   expense: TransactionResponse;
   currency: string;
   walletId: string;
   isLast: boolean;
+  fxRate: number | null;
+  globalCurrency: string | null;
+  isMobile: boolean;
+  showConverted: boolean;
+  switching: boolean;
 }) {
+  const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
+  const hasConversion = convertedAmount != null && globalCurrency != null;
+  const sign = expense.type === 'income' ? '+' : '';
+  const amountColor = expense.type === 'income' ? 'var(--forest)' : 'var(--ink)';
+
   return (
     <Link
       to={`/wallets/${walletId}/expenses/${expense.id}`}
@@ -361,16 +428,41 @@ function ExpenseRow({
               )}
             </>
           )}
+          {!isMobile && hasConversion && (
+            <>
+              <span style={{ flexShrink: 0 }}>·</span>
+              <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{fmtRelative(expense.date)}</span>
+            </>
+          )}
         </div>
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : 'var(--ink)' }}>
-          {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, currency)}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-          {fmtRelative(expense.date)}
-        </div>
+        {isMobile && hasConversion ? (
+          <>
+            <div
+              className={switching ? 'amount-switching' : ''}
+              style={{ fontSize: 15, fontWeight: 600, color: amountColor }}
+            >
+              {sign}{showConverted ? fmt(convertedAmount!, globalCurrency!) : fmt(expense.amount, currency)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+              {fmtRelative(expense.date)}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 600, color: amountColor }}>
+              {sign}{fmt(expense.amount, currency)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+              {hasConversion
+                ? <span style={{ color: 'var(--ink-mid)' }}>≈ {fmt(convertedAmount!, globalCurrency!)}</span>
+                : fmtRelative(expense.date)
+              }
+            </div>
+          </>
+        )}
       </div>
     </Link>
   );

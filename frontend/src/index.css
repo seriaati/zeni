@@ -326,3 +326,11 @@ h6 {
 .info-tooltip-content a {
   color: oklch(85% 0.12 155);
 }
+
+@keyframes amount-switch {
+  0%   { opacity: 1; transform: translateX(0); }
+  35%  { opacity: 0; transform: translateX(-14px); }
+  65%  { opacity: 0; transform: translateX(14px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.amount-switching { animation: amount-switch 0.32s ease forwards; }
