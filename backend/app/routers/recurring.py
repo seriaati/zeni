@@ -93,9 +93,7 @@ async def create_recurring(
     else:
         assert body.category_name is not None
         category = await find_or_create_category(
-            user_id=current_user.id,
-            name=body.category_name,
-            session=session,
+            user_id=current_user.id, name=body.category_name, session=session
         )
         resolved_category_id = category.id
 

@@ -14,10 +14,7 @@ if TYPE_CHECKING:
 
 
 async def find_or_create_category(
-    user_id: uuid.UUID,
-    name: str,
-    session: AsyncSession,
-    icon: str | None = None,
+    user_id: uuid.UUID, name: str, session: AsyncSession, icon: str | None = None
 ) -> Category:
     result = await session.exec(select(Category).where(Category.user_id == user_id))
     for cat in result.all():

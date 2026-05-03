@@ -66,11 +66,7 @@ async def create_category(
     body: CategoryCreate, current_user: CurrentUser, session: DbDep
 ) -> CategoryResponse:
     cat = Category(
-        user_id=current_user.id,
-        name=body.name,
-        icon=body.icon,
-        color=body.color,
-        is_system=False,
+        user_id=current_user.id, name=body.name, icon=body.icon, color=body.color, is_system=False
     )
     session.add(cat)
     await session.commit()

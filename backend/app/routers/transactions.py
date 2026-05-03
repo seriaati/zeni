@@ -199,10 +199,7 @@ async def _create_single_transaction(
     else:
         assert body.category_name is not None
         category = await find_or_create_category(
-            user_id=user_id,
-            name=body.category_name,
-            session=session,
-            icon=body.category_icon,
+            user_id=user_id, name=body.category_name, session=session, icon=body.category_icon
         )
         resolved_category_id = category.id
 
